@@ -1,0 +1,1153 @@
+{
+  "id": "0ae4e4ee-b0d7-477a-8fcf-b762785aefd9",
+  "saved_at": "2026-06-01T19:51:49.545448+00:00",
+  "success": true,
+  "filename": "Akola - Multidate - Sales Items By Transaction.csv",
+  "encoding": {
+    "encoding": "ascii",
+    "confidence": 1.0
+  },
+  "shape": {
+    "rows": 515,
+    "columns": 78
+  },
+  "schema": [
+    {
+      "name": "Branch Name",
+      "type": "categorical",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "top_values": [
+        "Akola"
+      ]
+    },
+    {
+      "name": "Branch Code",
+      "type": "categorical",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "top_values": [
+        "AKO"
+      ]
+    },
+    {
+      "name": "Branch Labels",
+      "type": "categorical",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "top_values": [
+        "Outlet"
+      ]
+    },
+    {
+      "name": "Business Brand",
+      "type": "categorical",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "top_values": [
+        "Pebbles Cafe"
+      ]
+    },
+    {
+      "name": "Business Date",
+      "type": "datetime",
+      "null_count": 0,
+      "null_pct": 0.0
+    },
+    {
+      "name": "Invoice Date",
+      "type": "datetime",
+      "null_count": 0,
+      "null_pct": 0.0
+    },
+    {
+      "name": "Invoice Number",
+      "type": "integer",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 846.0,
+      "max": 1036.0,
+      "mean": 938.4233
+    },
+    {
+      "name": "Bill Split Group Name",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Statement Number",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Order Source",
+      "type": "categorical",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "top_values": [
+        "dotpe",
+        "POS",
+        "zomato",
+        "swiggy"
+      ]
+    },
+    {
+      "name": "Source Order Number",
+      "type": "text",
+      "null_count": 139,
+      "null_pct": 27.0
+    },
+    {
+      "name": "Source Outlet Id",
+      "type": "float",
+      "null_count": 445,
+      "null_pct": 86.4,
+      "min": 901588.0,
+      "max": 20968819.0,
+      "mean": 19248770.6286
+    },
+    {
+      "name": "Invoice Type",
+      "type": "categorical",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "top_values": [
+        "Sale"
+      ]
+    },
+    {
+      "name": "Sale Status",
+      "type": "categorical",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "top_values": [
+        "Closed"
+      ]
+    },
+    {
+      "name": "SKU",
+      "type": "text",
+      "null_count": 0,
+      "null_pct": 0.0
+    },
+    {
+      "name": "Type",
+      "type": "categorical",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "top_values": [
+        "Item",
+        "Add On"
+      ]
+    },
+    {
+      "name": "Item Name",
+      "type": "text",
+      "null_count": 0,
+      "null_pct": 0.0
+    },
+    {
+      "name": "Tags",
+      "type": "categorical",
+      "null_count": 1,
+      "null_pct": 0.2,
+      "top_values": [
+        "Vegetarian"
+      ]
+    },
+    {
+      "name": "Original Qty",
+      "type": "float",
+      "null_count": 10,
+      "null_pct": 1.9,
+      "min": 1.0,
+      "max": 4.0,
+      "mean": 1.1069
+    },
+    {
+      "name": "Sale Item Qty",
+      "type": "integer",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 4.0,
+      "mean": 1.0544
+    },
+    {
+      "name": "Modified Qty",
+      "type": "float",
+      "null_count": 10,
+      "null_pct": 1.9,
+      "min": -2.0,
+      "max": 2.0,
+      "mean": -0.0495
+    },
+    {
+      "name": "Unit Rate",
+      "type": "integer",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 10.0,
+      "max": 485.0,
+      "mean": 158.2447
+    },
+    {
+      "name": "Verified Qty",
+      "type": "float",
+      "null_count": 457,
+      "null_pct": 88.7,
+      "min": 1.0,
+      "max": 2.0,
+      "mean": 1.0345
+    },
+    {
+      "name": "Measuring Unit",
+      "type": "categorical",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "top_values": [
+        "ea",
+        "kg"
+      ]
+    },
+    {
+      "name": "Suggested Batch",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Verified Batch",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Amount Before Modification",
+      "type": "float",
+      "null_count": 10,
+      "null_pct": 1.9,
+      "min": 10.0,
+      "max": 540.0,
+      "mean": 173.7168
+    },
+    {
+      "name": "Value of Modification",
+      "type": "float",
+      "null_count": 10,
+      "null_pct": 1.9,
+      "min": -288.0,
+      "max": 350.0,
+      "mean": -6.2
+    },
+    {
+      "name": "Average Gross Amount",
+      "type": "integer",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 485.0,
+      "mean": 151.0485
+    },
+    {
+      "name": "Gross Amount",
+      "type": "integer",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 540.0,
+      "mean": 165.7184
+    },
+    {
+      "name": "Discounts",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": -100.0,
+      "max": 0.0,
+      "mean": -5.7267
+    },
+    {
+      "name": "Net Amount",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 540.0,
+      "mean": 159.9917
+    },
+    {
+      "name": "Taxes",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 27.0,
+      "mean": 6.8681
+    },
+    {
+      "name": "Tax Collected by Aggregator",
+      "type": "float",
+      "null_count": 445,
+      "null_pct": 86.4,
+      "min": 0.3006,
+      "max": 19.26,
+      "mean": 8.3276
+    },
+    {
+      "name": "Business Tax Id",
+      "type": "categorical",
+      "null_count": 35,
+      "null_pct": 6.8,
+      "top_values": [
+        "27CFWPV5219P1Z6"
+      ]
+    },
+    {
+      "name": "Direct Charge",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 20.0,
+      "mean": 0.1165
+    },
+    {
+      "name": "Indirect Charge",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 22.08,
+      "mean": 0.2621
+    },
+    {
+      "name": "Tax Rate",
+      "type": "integer",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 5.0,
+      "mean": 4.3204
+    },
+    {
+      "name": "Item Tax Code",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Materials Cost",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Supplies Cost",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Customer ID",
+      "type": "text",
+      "null_count": 220,
+      "null_pct": 42.7
+    },
+    {
+      "name": "Customer Phone",
+      "type": "float",
+      "null_count": 220,
+      "null_pct": 42.7,
+      "min": 7020242987.0,
+      "max": 9975050180.0,
+      "mean": 8552667949.6203
+    },
+    {
+      "name": "Customer Name",
+      "type": "text",
+      "null_count": 35,
+      "null_pct": 6.8
+    },
+    {
+      "name": "Customer Tax ID",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Created By",
+      "type": "categorical",
+      "null_count": 35,
+      "null_pct": 6.8,
+      "top_values": [
+        "SYSTEM ",
+        "Varun Virwani (DKVZZF)",
+        "Manager  (VYJLDC)"
+      ]
+    },
+    {
+      "name": "Created Time",
+      "type": "datetime",
+      "null_count": 35,
+      "null_pct": 6.8
+    },
+    {
+      "name": "Ticket Number",
+      "type": "text",
+      "null_count": 4,
+      "null_pct": 0.8
+    },
+    {
+      "name": "Time To Prepare",
+      "type": "float",
+      "null_count": 448,
+      "null_pct": 87.0,
+      "min": 4.85,
+      "max": 39.87,
+      "mean": 20.5173
+    },
+    {
+      "name": "Prepared timestamp",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "In Process timestamp",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Time To In Process",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Notes",
+      "type": "text",
+      "null_count": 513,
+      "null_pct": 99.6
+    },
+    {
+      "name": "Modified After Print",
+      "type": "boolean",
+      "null_count": 35,
+      "null_pct": 6.8
+    },
+    {
+      "name": "Change Log",
+      "type": "text",
+      "null_count": 484,
+      "null_pct": 94.0
+    },
+    {
+      "name": "Last Modified By",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Last Modified Time",
+      "type": "datetime",
+      "null_count": 484,
+      "null_pct": 94.0
+    },
+    {
+      "name": "Channel",
+      "type": "categorical",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "top_values": [
+        "DotPe",
+        "Dine In",
+        "Zomato",
+        "Takeaway",
+        "Swiggy"
+      ]
+    },
+    {
+      "name": "Channel Label",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Session",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Category",
+      "type": "categorical",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "top_values": [
+        "Cold Coffee",
+        "Water Bottle",
+        "Fries & Maggi",
+        "Sandwich (3 Layer)",
+        "Momo & Nachos"
+      ]
+    },
+    {
+      "name": "Subcategory",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Item Brand",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Account Name",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Item Group Name",
+      "type": "text",
+      "null_count": 0,
+      "null_pct": 0.0
+    },
+    {
+      "name": "Variant(s)",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Reason For Cancel/Void/Non Chargeable",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Remarks for Cancel/Void/Non Chargeable",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Punched Name",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Resource Name",
+      "type": "float",
+      "null_count": 4,
+      "null_pct": 0.8,
+      "min": 1.0,
+      "max": 9915.0,
+      "mean": 835.3855
+    },
+    {
+      "name": "Resource Group Name",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Item Discount Remarks",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Item Discount Codes",
+      "type": "text",
+      "null_count": 509,
+      "null_pct": 98.8
+    },
+    {
+      "name": "Item Discount Reasons",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Bill Discount Remarks",
+      "type": "float",
+      "null_count": 515,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Bill Discount Codes",
+      "type": "text",
+      "null_count": 447,
+      "null_pct": 86.8
+    },
+    {
+      "name": "Bill Discount Reasons",
+      "type": "text",
+      "null_count": 514,
+      "null_pct": 99.8
+    },
+    {
+      "name": "Payment Modes",
+      "type": "categorical",
+      "null_count": 5,
+      "null_pct": 1.0,
+      "top_values": [
+        "Cash",
+        "UPI",
+        "Zomato",
+        "dotpe phonepe",
+        "Cash,UPI"
+      ]
+    }
+  ],
+  "sample_rows": [
+    {
+      "Branch Name": "Akola",
+      "Branch Code": "AKO",
+      "Branch Labels": "Outlet",
+      "Business Brand": "Pebbles Cafe",
+      "Business Date": "2025-06-07",
+      "Invoice Date": "2025-06-07 22:42:26",
+      "Invoice Number": 1027,
+      "Bill Split Group Name": null,
+      "Statement Number": null,
+      "Order Source": "dotpe",
+      "Source Order Number": "70761966##87900121",
+      "Source Outlet Id": null,
+      "Invoice Type": "Sale",
+      "Sale Status": "Closed",
+      "SKU": "NEW_14",
+      "Type": "Item",
+      "Item Name": "Biscoff Cold Coffee",
+      "Tags": "Vegetarian",
+      "Original Qty": 1.0,
+      "Sale Item Qty": 1,
+      "Modified Qty": 0.0,
+      "Unit Rate": 195,
+      "Verified Qty": null,
+      "Measuring Unit": "ea",
+      "Suggested Batch": null,
+      "Verified Batch": null,
+      "Amount Before Modification": 195.0,
+      "Value of Modification": 0.0,
+      "Average Gross Amount": 195,
+      "Gross Amount": 195,
+      "Discounts": 0.0,
+      "Net Amount": 195.0,
+      "Taxes": 9.75,
+      "Tax Collected by Aggregator": null,
+      "Business Tax Id": "27CFWPV5219P1Z6",
+      "Direct Charge": 0.0,
+      "Indirect Charge": 0.0,
+      "Tax Rate": 5,
+      "Item Tax Code": null,
+      "Materials Cost": null,
+      "Supplies Cost": null,
+      "Customer ID": "VI7YL2LZ",
+      "Customer Phone": 9028628712.0,
+      "Customer Name": "Amit ",
+      "Customer Tax ID": null,
+      "Created By": "Varun Virwani (DKVZZF)",
+      "Created Time": "2025-06-07 22:38:58",
+      "Ticket Number": "1027-3",
+      "Time To Prepare": null,
+      "Prepared timestamp": null,
+      "In Process timestamp": null,
+      "Time To In Process": null,
+      "Notes": null,
+      "Modified After Print": "No",
+      "Change Log": null,
+      "Last Modified By": null,
+      "Last Modified Time": null,
+      "Channel": "DotPe",
+      "Channel Label": null,
+      "Session": null,
+      "Category": "Cold Coffee",
+      "Subcategory": null,
+      "Item Brand": null,
+      "Account Name": null,
+      "Item Group Name": "Biscoff Cold Coffee",
+      "Variant(s)": null,
+      "Reason For Cancel/Void/Non Chargeable": null,
+      "Remarks for Cancel/Void/Non Chargeable": null,
+      "Punched Name": null,
+      "Resource Name": 8.0,
+      "Resource Group Name": null,
+      "Item Discount Remarks": null,
+      "Item Discount Codes": null,
+      "Item Discount Reasons": null,
+      "Bill Discount Remarks": null,
+      "Bill Discount Codes": null,
+      "Bill Discount Reasons": null,
+      "Payment Modes": "UPI"
+    },
+    {
+      "Branch Name": "Akola",
+      "Branch Code": "AKO",
+      "Branch Labels": "Outlet",
+      "Business Brand": "Pebbles Cafe",
+      "Business Date": "2025-06-07",
+      "Invoice Date": "2025-06-07 22:16:01",
+      "Invoice Number": 1028,
+      "Bill Split Group Name": null,
+      "Statement Number": null,
+      "Order Source": "POS",
+      "Source Order Number": null,
+      "Source Outlet Id": null,
+      "Invoice Type": "Sale",
+      "Sale Status": "Closed",
+      "SKU": "NEW_76",
+      "Type": "Item",
+      "Item Name": "Peri Peri Sandwich",
+      "Tags": "Vegetarian",
+      "Original Qty": 1.0,
+      "Sale Item Qty": 1,
+      "Modified Qty": 0.0,
+      "Unit Rate": 155,
+      "Verified Qty": null,
+      "Measuring Unit": "ea",
+      "Suggested Batch": null,
+      "Verified Batch": null,
+      "Amount Before Modification": 155.0,
+      "Value of Modification": 0.0,
+      "Average Gross Amount": 155,
+      "Gross Amount": 155,
+      "Discounts": -15.5,
+      "Net Amount": 139.5,
+      "Taxes": 6.975,
+      "Tax Collected by Aggregator": null,
+      "Business Tax Id": "27CFWPV5219P1Z6",
+      "Direct Charge": 0.0,
+      "Indirect Charge": 0.0,
+      "Tax Rate": 5,
+      "Item Tax Code": null,
+      "Materials Cost": null,
+      "Supplies Cost": null,
+      "Customer ID": null,
+      "Customer Phone": null,
+      "Customer Name": " ",
+      "Customer Tax ID": null,
+      "Created By": "Varun Virwani (DKVZZF)",
+      "Created Time": "2025-06-07 22:16:01",
+      "Ticket Number": "1028-1",
+      "Time To Prepare": null,
+      "Prepared timestamp": null,
+      "In Process timestamp": null,
+      "Time To In Process": null,
+      "Notes": null,
+      "Modified After Print": "No",
+      "Change Log": null,
+      "Last Modified By": null,
+      "Last Modified Time": null,
+      "Channel": "Dine In",
+      "Channel Label": null,
+      "Session": null,
+      "Category": "Sandwich (3 Layer)",
+      "Subcategory": null,
+      "Item Brand": null,
+      "Account Name": null,
+      "Item Group Name": "Peri Peri Sandwich",
+      "Variant(s)": null,
+      "Reason For Cancel/Void/Non Chargeable": null,
+      "Remarks for Cancel/Void/Non Chargeable": null,
+      "Punched Name": null,
+      "Resource Name": 4.0,
+      "Resource Group Name": null,
+      "Item Discount Remarks": null,
+      "Item Discount Codes": null,
+      "Item Discount Reasons": null,
+      "Bill Discount Remarks": null,
+      "Bill Discount Codes": "specialmember",
+      "Bill Discount Reasons": null,
+      "Payment Modes": "Cash"
+    },
+    {
+      "Branch Name": "Akola",
+      "Branch Code": "AKO",
+      "Branch Labels": "Outlet",
+      "Business Brand": "Pebbles Cafe",
+      "Business Date": "2025-06-07",
+      "Invoice Date": "2025-06-07 22:35:23",
+      "Invoice Number": 1029,
+      "Bill Split Group Name": null,
+      "Statement Number": null,
+      "Order Source": "POS",
+      "Source Order Number": null,
+      "Source Outlet Id": null,
+      "Invoice Type": "Sale",
+      "Sale Status": "Closed",
+      "SKU": "NEW_10",
+      "Type": "Item",
+      "Item Name": "Hazelnut Cold Coffee",
+      "Tags": "Vegetarian",
+      "Original Qty": 1.0,
+      "Sale Item Qty": 1,
+      "Modified Qty": 0.0,
+      "Unit Rate": 155,
+      "Verified Qty": null,
+      "Measuring Unit": "ea",
+      "Suggested Batch": null,
+      "Verified Batch": null,
+      "Amount Before Modification": 155.0,
+      "Value of Modification": 0.0,
+      "Average Gross Amount": 155,
+      "Gross Amount": 155,
+      "Discounts": 0.0,
+      "Net Amount": 155.0,
+      "Taxes": 7.75,
+      "Tax Collected by Aggregator": null,
+      "Business Tax Id": "27CFWPV5219P1Z6",
+      "Direct Charge": 0.0,
+      "Indirect Charge": 0.0,
+      "Tax Rate": 5,
+      "Item Tax Code": null,
+      "Materials Cost": null,
+      "Supplies Cost": null,
+      "Customer ID": null,
+      "Customer Phone": null,
+      "Customer Name": " ",
+      "Customer Tax ID": null,
+      "Created By": "Varun Virwani (DKVZZF)",
+      "Created Time": "2025-06-07 22:26:59",
+      "Ticket Number": "1029-1",
+      "Time To Prepare": null,
+      "Prepared timestamp": null,
+      "In Process timestamp": null,
+      "Time To In Process": null,
+      "Notes": null,
+      "Modified After Print": "No",
+      "Change Log": null,
+      "Last Modified By": null,
+      "Last Modified Time": null,
+      "Channel": "Dine In",
+      "Channel Label": null,
+      "Session": null,
+      "Category": "Cold Coffee",
+      "Subcategory": null,
+      "Item Brand": null,
+      "Account Name": null,
+      "Item Group Name": "Hazelnut Cold Coffee",
+      "Variant(s)": null,
+      "Reason For Cancel/Void/Non Chargeable": null,
+      "Remarks for Cancel/Void/Non Chargeable": null,
+      "Punched Name": null,
+      "Resource Name": 3.0,
+      "Resource Group Name": null,
+      "Item Discount Remarks": null,
+      "Item Discount Codes": null,
+      "Item Discount Reasons": null,
+      "Bill Discount Remarks": null,
+      "Bill Discount Codes": null,
+      "Bill Discount Reasons": null,
+      "Payment Modes": "Cash"
+    },
+    {
+      "Branch Name": "Akola",
+      "Branch Code": "AKO",
+      "Branch Labels": "Outlet",
+      "Business Brand": "Pebbles Cafe",
+      "Business Date": "2025-06-07",
+      "Invoice Date": "2025-06-07 22:35:23",
+      "Invoice Number": 1029,
+      "Bill Split Group Name": null,
+      "Statement Number": null,
+      "Order Source": "POS",
+      "Source Order Number": null,
+      "Source Outlet Id": null,
+      "Invoice Type": "Sale",
+      "Sale Status": "Closed",
+      "SKU": "NEW_13",
+      "Type": "Item",
+      "Item Name": "Irish Cold Coffee",
+      "Tags": "Vegetarian",
+      "Original Qty": 1.0,
+      "Sale Item Qty": 1,
+      "Modified Qty": 0.0,
+      "Unit Rate": 155,
+      "Verified Qty": null,
+      "Measuring Unit": "ea",
+      "Suggested Batch": null,
+      "Verified Batch": null,
+      "Amount Before Modification": 155.0,
+      "Value of Modification": 0.0,
+      "Average Gross Amount": 155,
+      "Gross Amount": 155,
+      "Discounts": 0.0,
+      "Net Amount": 155.0,
+      "Taxes": 7.75,
+      "Tax Collected by Aggregator": null,
+      "Business Tax Id": "27CFWPV5219P1Z6",
+      "Direct Charge": 0.0,
+      "Indirect Charge": 0.0,
+      "Tax Rate": 5,
+      "Item Tax Code": null,
+      "Materials Cost": null,
+      "Supplies Cost": null,
+      "Customer ID": null,
+      "Customer Phone": null,
+      "Customer Name": " ",
+      "Customer Tax ID": null,
+      "Created By": "Varun Virwani (DKVZZF)",
+      "Created Time": "2025-06-07 22:26:59",
+      "Ticket Number": "1029-1",
+      "Time To Prepare": null,
+      "Prepared timestamp": null,
+      "In Process timestamp": null,
+      "Time To In Process": null,
+      "Notes": null,
+      "Modified After Print": "No",
+      "Change Log": null,
+      "Last Modified By": null,
+      "Last Modified Time": null,
+      "Channel": "Dine In",
+      "Channel Label": null,
+      "Session": null,
+      "Category": "Cold Coffee",
+      "Subcategory": null,
+      "Item Brand": null,
+      "Account Name": null,
+      "Item Group Name": "Irish Cold Coffee",
+      "Variant(s)": null,
+      "Reason For Cancel/Void/Non Chargeable": null,
+      "Remarks for Cancel/Void/Non Chargeable": null,
+      "Punched Name": null,
+      "Resource Name": 3.0,
+      "Resource Group Name": null,
+      "Item Discount Remarks": null,
+      "Item Discount Codes": null,
+      "Item Discount Reasons": null,
+      "Bill Discount Remarks": null,
+      "Bill Discount Codes": null,
+      "Bill Discount Reasons": null,
+      "Payment Modes": "Cash"
+    },
+    {
+      "Branch Name": "Akola",
+      "Branch Code": "AKO",
+      "Branch Labels": "Outlet",
+      "Business Brand": "Pebbles Cafe",
+      "Business Date": "2025-06-07",
+      "Invoice Date": "2025-06-07 23:12:02",
+      "Invoice Number": 1030,
+      "Bill Split Group Name": null,
+      "Statement Number": null,
+      "Order Source": "POS",
+      "Source Order Number": null,
+      "Source Outlet Id": null,
+      "Invoice Type": "Sale",
+      "Sale Status": "Closed",
+      "SKU": "NEW_133",
+      "Type": "Item",
+      "Item Name": "Water Bottle",
+      "Tags": "Vegetarian",
+      "Original Qty": 1.0,
+      "Sale Item Qty": 1,
+      "Modified Qty": 0.0,
+      "Unit Rate": 20,
+      "Verified Qty": null,
+      "Measuring Unit": "ea",
+      "Suggested Batch": null,
+      "Verified Batch": null,
+      "Amount Before Modification": 20.0,
+      "Value of Modification": 0.0,
+      "Average Gross Amount": 20,
+      "Gross Amount": 20,
+      "Discounts": 0.0,
+      "Net Amount": 20.0,
+      "Taxes": 1.0,
+      "Tax Collected by Aggregator": null,
+      "Business Tax Id": "27CFWPV5219P1Z6",
+      "Direct Charge": 0.82,
+      "Indirect Charge": 0.0,
+      "Tax Rate": 5,
+      "Item Tax Code": null,
+      "Materials Cost": null,
+      "Supplies Cost": null,
+      "Customer ID": null,
+      "Customer Phone": null,
+      "Customer Name": " ",
+      "Customer Tax ID": null,
+      "Created By": "Varun Virwani (DKVZZF)",
+      "Created Time": "2025-06-07 23:12:02",
+      "Ticket Number": "1030-1",
+      "Time To Prepare": null,
+      "Prepared timestamp": null,
+      "In Process timestamp": null,
+      "Time To In Process": null,
+      "Notes": null,
+      "Modified After Print": "No",
+      "Change Log": null,
+      "Last Modified By": null,
+      "Last Modified Time": null,
+      "Channel": "Dine In",
+      "Channel Label": null,
+      "Session": null,
+      "Category": "Water Bottle",
+      "Subcategory": null,
+      "Item Brand": null,
+      "Account Name": null,
+      "Item Group Name": "Water Bottle",
+      "Variant(s)": null,
+      "Reason For Cancel/Void/Non Chargeable": null,
+      "Remarks for Cancel/Void/Non Chargeable": null,
+      "Punched Name": null,
+      "Resource Name": 7.0,
+      "Resource Group Name": null,
+      "Item Discount Remarks": null,
+      "Item Discount Codes": null,
+      "Item Discount Reasons": null,
+      "Bill Discount Remarks": null,
+      "Bill Discount Codes": null,
+      "Bill Discount Reasons": null,
+      "Payment Modes": "Cash"
+    }
+  ],
+  "warnings": [],
+  "header_suggestion": null,
+  "raw_rows": [
+    {
+      "index": 0,
+      "cells": [
+        "Branch Name",
+        "Branch Code",
+        "Branch Labels",
+        "Business Brand",
+        "Business Date",
+        "Invoice Date",
+        "Invoice Number",
+        "Bill Split Group Name",
+        "Statement Number",
+        "Order Source",
+        "Source Order Number",
+        "Source Outlet Id"
+      ]
+    },
+    {
+      "index": 1,
+      "cells": [
+        "Akola",
+        "AKO",
+        "Outlet",
+        "Pebbles Cafe",
+        "2025-06-07",
+        "2025-06-07 22:42:26",
+        "1027",
+        "",
+        "",
+        "dotpe",
+        "70761966##87900121",
+        ""
+      ]
+    },
+    {
+      "index": 2,
+      "cells": [
+        "Akola",
+        "AKO",
+        "Outlet",
+        "Pebbles Cafe",
+        "2025-06-07",
+        "2025-06-07 22:16:01",
+        "1028",
+        "",
+        "",
+        "POS",
+        "",
+        ""
+      ]
+    },
+    {
+      "index": 3,
+      "cells": [
+        "Akola",
+        "AKO",
+        "Outlet",
+        "Pebbles Cafe",
+        "2025-06-07",
+        "2025-06-07 22:35:23",
+        "1029",
+        "",
+        "",
+        "POS",
+        "",
+        ""
+      ]
+    },
+    {
+      "index": 4,
+      "cells": [
+        "Akola",
+        "AKO",
+        "Outlet",
+        "Pebbles Cafe",
+        "2025-06-07",
+        "2025-06-07 22:35:23",
+        "1029",
+        "",
+        "",
+        "POS",
+        "",
+        ""
+      ]
+    },
+    {
+      "index": 5,
+      "cells": [
+        "Akola",
+        "AKO",
+        "Outlet",
+        "Pebbles Cafe",
+        "2025-06-07",
+        "2025-06-07 23:12:02",
+        "1030",
+        "",
+        "",
+        "POS",
+        "",
+        ""
+      ]
+    },
+    {
+      "index": 6,
+      "cells": [
+        "Akola",
+        "AKO",
+        "Outlet",
+        "Pebbles Cafe",
+        "2025-06-07",
+        "2025-06-07 23:12:02",
+        "1030",
+        "",
+        "",
+        "POS",
+        "",
+        ""
+      ]
+    },
+    {
+      "index": 7,
+      "cells": [
+        "Akola",
+        "AKO",
+        "Outlet",
+        "Pebbles Cafe",
+        "2025-06-07",
+        "2025-06-07 23:12:02",
+        "1030",
+        "",
+        "",
+        "POS",
+        "",
+        ""
+      ]
+    }
+  ]
+}

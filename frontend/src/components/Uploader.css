@@ -1,0 +1,82 @@
+.uploader-wrap { width: 100%; }
+
+.dropzone {
+  border: 2px dashed var(--gray-200);
+  border-radius: 16px;
+  padding: 56px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  background: white;
+}
+
+.dropzone:hover, .dropzone.active {
+  border-color: var(--blue);
+  background: var(--blue-light);
+}
+
+.dropzone.loading { cursor: default; pointer-events: none; }
+
+.drop-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  color: var(--gray-400);
+}
+
+.drop-main {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: 4px;
+}
+
+.drop-sub {
+  font-size: 14px;
+  color: var(--gray-400);
+  margin-bottom: 20px;
+}
+
+.drop-types {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.drop-types span {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--gray-100);
+  color: var(--gray-600);
+}
+
+.upload-progress { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+.spinner {
+  width: 28px; height: 28px;
+  border: 2.5px solid var(--gray-200);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.progress-filename { font-size: 13px; color: var(--gray-600); font-weight: 500; }
+
+.progress-bar-wrap {
+  width: 200px; height: 4px;
+  background: var(--gray-200);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--blue);
+  border-radius: 2px;
+  transition: width .2s;
+}
+
+.progress-pct { font-size: 12px; color: var(--gray-400); }

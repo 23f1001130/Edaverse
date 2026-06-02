@@ -1,0 +1,554 @@
+{
+  "id": "fea72fee-e9df-4af0-807e-6c6e12c89363",
+  "saved_at": "2026-06-01T19:54:27.076010+00:00",
+  "success": true,
+  "filename": "Orders_Master_Report_2025_05_13_11_11_13.xlsx",
+  "encoding": {
+    "encoding": "Windows-1252",
+    "confidence": 0.73
+  },
+  "shape": {
+    "rows": 7239,
+    "columns": 31
+  },
+  "schema": [
+    {
+      "name": "Date:",
+      "type": "datetime",
+      "null_count": 2,
+      "null_pct": 0.0
+    },
+    {
+      "name": "2024-05-21 to 2025-05-13",
+      "type": "datetime",
+      "null_count": 6,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 2",
+      "type": "categorical",
+      "null_count": 8,
+      "null_pct": 0.1,
+      "top_values": [
+        "Other [UPI]",
+        "Cash",
+        "Online",
+        "Part Payment",
+        "CARD"
+      ]
+    },
+    {
+      "name": "Unnamed: 3",
+      "type": "text",
+      "null_count": 7214,
+      "null_pct": 99.7
+    },
+    {
+      "name": "Unnamed: 4",
+      "type": "categorical",
+      "null_count": 8,
+      "null_pct": 0.1,
+      "top_values": [
+        "Dine In",
+        "Delivery(Parcel)",
+        "Pick Up",
+        "Order Type"
+      ]
+    },
+    {
+      "name": "Unnamed: 5",
+      "type": "categorical",
+      "null_count": 8,
+      "null_pct": 0.1,
+      "top_values": [
+        "Success",
+        "Status"
+      ]
+    },
+    {
+      "name": "Unnamed: 6",
+      "type": "categorical",
+      "null_count": 6553,
+      "null_pct": 90.5,
+      "top_values": [
+        "Zomato",
+        "Area"
+      ]
+    },
+    {
+      "name": "Unnamed: 7",
+      "type": "categorical",
+      "null_count": 8,
+      "null_pct": 0.1,
+      "top_values": [
+        "Dine In",
+        "Zomato",
+        "Pick Up",
+        "Sub Order Type"
+      ]
+    },
+    {
+      "name": "Unnamed: 8",
+      "type": "categorical",
+      "null_count": 1901,
+      "null_pct": 26.3,
+      "top_values": [
+        "Dine In Menu",
+        "Zomato Menu",
+        "Dine In Menu, Zomato Menu",
+        "Group Name"
+      ]
+    },
+    {
+      "name": "Unnamed: 9",
+      "type": "text",
+      "null_count": 7238,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Unnamed: 10",
+      "type": "text",
+      "null_count": 7238,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Unnamed: 11",
+      "type": "text",
+      "null_count": 7238,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Unnamed: 12",
+      "type": "datetime",
+      "null_count": 1988,
+      "null_pct": 27.5
+    },
+    {
+      "name": "Unnamed: 13",
+      "type": "text",
+      "null_count": 1320,
+      "null_pct": 18.2
+    },
+    {
+      "name": "Unnamed: 14",
+      "type": "text",
+      "null_count": 7238,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Unnamed: 15",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 16",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 17",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 18",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 19",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 20",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 21",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 22",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 23",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 24",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 25",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 26",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 27",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 28",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 29",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Unnamed: 30",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    }
+  ],
+  "sample_rows": [
+    {
+      "Date:": "Name:",
+      "2024-05-21 to 2025-05-13": "Orders: Master Report",
+      "Unnamed: 2": null,
+      "Unnamed: 3": null,
+      "Unnamed: 4": null,
+      "Unnamed: 5": null,
+      "Unnamed: 6": null,
+      "Unnamed: 7": null,
+      "Unnamed: 8": null,
+      "Unnamed: 9": null,
+      "Unnamed: 10": null,
+      "Unnamed: 11": null,
+      "Unnamed: 12": null,
+      "Unnamed: 13": null,
+      "Unnamed: 14": null,
+      "Unnamed: 15": null,
+      "Unnamed: 16": null,
+      "Unnamed: 17": null,
+      "Unnamed: 18": null,
+      "Unnamed: 19": null,
+      "Unnamed: 20": null,
+      "Unnamed: 21": null,
+      "Unnamed: 22": null,
+      "Unnamed: 23": null,
+      "Unnamed: 24": null,
+      "Unnamed: 25": null,
+      "Unnamed: 26": null,
+      "Unnamed: 27": null,
+      "Unnamed: 28": null,
+      "Unnamed: 29": null,
+      "Unnamed: 30": null
+    },
+    {
+      "Date:": "Restaurant Name:",
+      "2024-05-21 to 2025-05-13": "Pebbles Cafe",
+      "Unnamed: 2": null,
+      "Unnamed: 3": null,
+      "Unnamed: 4": null,
+      "Unnamed: 5": null,
+      "Unnamed: 6": null,
+      "Unnamed: 7": null,
+      "Unnamed: 8": null,
+      "Unnamed: 9": null,
+      "Unnamed: 10": null,
+      "Unnamed: 11": null,
+      "Unnamed: 12": null,
+      "Unnamed: 13": null,
+      "Unnamed: 14": null,
+      "Unnamed: 15": null,
+      "Unnamed: 16": null,
+      "Unnamed: 17": null,
+      "Unnamed: 18": null,
+      "Unnamed: 19": null,
+      "Unnamed: 20": null,
+      "Unnamed: 21": null,
+      "Unnamed: 22": null,
+      "Unnamed: 23": null,
+      "Unnamed: 24": null,
+      "Unnamed: 25": null,
+      "Unnamed: 26": null,
+      "Unnamed: 27": null,
+      "Unnamed: 28": null,
+      "Unnamed: 29": null,
+      "Unnamed: 30": null
+    },
+    {
+      "Date:": null,
+      "2024-05-21 to 2025-05-13": null,
+      "Unnamed: 2": null,
+      "Unnamed: 3": null,
+      "Unnamed: 4": null,
+      "Unnamed: 5": null,
+      "Unnamed: 6": null,
+      "Unnamed: 7": null,
+      "Unnamed: 8": null,
+      "Unnamed: 9": null,
+      "Unnamed: 10": null,
+      "Unnamed: 11": null,
+      "Unnamed: 12": null,
+      "Unnamed: 13": null,
+      "Unnamed: 14": null,
+      "Unnamed: 15": null,
+      "Unnamed: 16": null,
+      "Unnamed: 17": null,
+      "Unnamed: 18": null,
+      "Unnamed: 19": null,
+      "Unnamed: 20": null,
+      "Unnamed: 21": null,
+      "Unnamed: 22": null,
+      "Unnamed: 23": null,
+      "Unnamed: 24": null,
+      "Unnamed: 25": null,
+      "Unnamed: 26": null,
+      "Unnamed: 27": null,
+      "Unnamed: 28": null,
+      "Unnamed: 29": null,
+      "Unnamed: 30": null
+    },
+    {
+      "Date:": null,
+      "2024-05-21 to 2025-05-13": null,
+      "Unnamed: 2": null,
+      "Unnamed: 3": null,
+      "Unnamed: 4": null,
+      "Unnamed: 5": null,
+      "Unnamed: 6": null,
+      "Unnamed: 7": null,
+      "Unnamed: 8": null,
+      "Unnamed: 9": null,
+      "Unnamed: 10": null,
+      "Unnamed: 11": null,
+      "Unnamed: 12": null,
+      "Unnamed: 13": null,
+      "Unnamed: 14": null,
+      "Unnamed: 15": null,
+      "Unnamed: 16": null,
+      "Unnamed: 17": null,
+      "Unnamed: 18": null,
+      "Unnamed: 19": null,
+      "Unnamed: 20": null,
+      "Unnamed: 21": null,
+      "Unnamed: 22": null,
+      "Unnamed: 23": null,
+      "Unnamed: 24": null,
+      "Unnamed: 25": null,
+      "Unnamed: 26": null,
+      "Unnamed: 27": null,
+      "Unnamed: 28": null,
+      "Unnamed: 29": null,
+      "Unnamed: 30": null
+    },
+    {
+      "Date:": "Invoice No.",
+      "2024-05-21 to 2025-05-13": "Date",
+      "Unnamed: 2": "Payment Type",
+      "Unnamed: 3": "Payment Description",
+      "Unnamed: 4": "Order Type",
+      "Unnamed: 5": "Status",
+      "Unnamed: 6": "Area",
+      "Unnamed: 7": "Sub Order Type",
+      "Unnamed: 8": "Group Name",
+      "Unnamed: 9": "Brand Name",
+      "Unnamed: 10": "GSTIN",
+      "Unnamed: 11": "Assign To",
+      "Unnamed: 12": "Phone",
+      "Unnamed: 13": "Name",
+      "Unnamed: 14": "Order Cancel Reason",
+      "Unnamed: 15": "My Amount (₹)",
+      "Unnamed: 16": "Discount (₹)",
+      "Unnamed: 17": "Net Sales (₹)(M.A - D)",
+      "Unnamed: 18": "Delivery Charge",
+      "Unnamed: 19": "Total Tax (₹)",
+      "Unnamed: 20": "Round Off",
+      "Unnamed: 21": "Waived off",
+      "Unnamed: 22": "Total (₹)",
+      "Unnamed: 23": "Online Tax Calculated",
+      "Unnamed: 24": "GST Paid by Merchant",
+      "Unnamed: 25": "GST Paid by Ecommerce",
+      "Unnamed: 26": "Non Taxable",
+      "Unnamed: 27": "Amount (SGST)",
+      "Unnamed: 28": "SGST",
+      "Unnamed: 29": "Amount (CGST)",
+      "Unnamed: 30": "CGST"
+    }
+  ],
+  "warnings": [],
+  "header_suggestion": {
+    "suggested_row": 5,
+    "confidence": 0.25,
+    "preview": [
+      "Invoice No.",
+      "Date",
+      "Payment Type",
+      "Payment Description",
+      "Order Type",
+      "Status"
+    ],
+    "message": "Row 1 may not be the real header. Row 5 looks more like column names."
+  },
+  "raw_rows": [
+    {
+      "index": 0,
+      "cells": [
+        "Date:",
+        "2024-05-21 to 2025-05-13",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "index": 1,
+      "cells": [
+        "Name:",
+        "Orders: Master Report",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "index": 2,
+      "cells": [
+        "Restaurant Name:",
+        "Pebbles Cafe",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "index": 3,
+      "cells": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "index": 4,
+      "cells": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "index": 5,
+      "cells": [
+        "Invoice No.",
+        "Date",
+        "Payment Type",
+        "Payment Description",
+        "Order Type",
+        "Status",
+        "Area",
+        "Sub Order Type",
+        "Group Name",
+        "Brand Name",
+        "GSTIN",
+        "Assign To"
+      ]
+    },
+    {
+      "index": 6,
+      "cells": [
+        "Total",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "index": 7,
+      "cells": [
+        "Min.",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    }
+  ]
+}

@@ -1,0 +1,280 @@
+{
+  "id": "86e16817-efea-4c56-a020-1b60e5900977",
+  "saved_at": "2026-06-01T19:42:34.063325+00:00",
+  "success": true,
+  "filename": "clean_Sales Item Quantity By Time.csv",
+  "encoding": {
+    "encoding": "ascii",
+    "confidence": 1.0
+  },
+  "shape": {
+    "rows": 178,
+    "columns": 10
+  },
+  "schema": [
+    {
+      "name": "SKU",
+      "type": "text",
+      "null_count": 0,
+      "null_pct": 0.0
+    },
+    {
+      "name": "Item Name",
+      "type": "text",
+      "null_count": 0,
+      "null_pct": 0.0
+    },
+    {
+      "name": "Category",
+      "type": "text",
+      "null_count": 0,
+      "null_pct": 0.0
+    },
+    {
+      "name": "Subcategory",
+      "type": "float",
+      "null_count": 178,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Total Amount",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 89.0,
+      "max": 55590.0,
+      "mean": 2907.6026
+    },
+    {
+      "name": "Average Price",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 9.12,
+      "max": 545.0,
+      "mean": 190.5462
+    },
+    {
+      "name": "Total Quantity",
+      "type": "integer",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 1.0,
+      "max": 300.0,
+      "mean": 17.6573
+    },
+    {
+      "name": "Apr-2025",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "mean": 0.0281
+    },
+    {
+      "name": "May-2025",
+      "type": "float",
+      "null_count": 28,
+      "null_pct": 15.7,
+      "min": 1.0,
+      "max": 182.0,
+      "mean": 13.94
+    },
+    {
+      "name": "Jun-2025",
+      "type": "float",
+      "null_count": 38,
+      "null_pct": 21.3,
+      "min": 1.0,
+      "max": 118.0,
+      "mean": 7.4786
+    }
+  ],
+  "sample_rows": [
+    {
+      "SKU": "1",
+      "Item Name": "Nutella",
+      "Category": "Others",
+      "Subcategory": null,
+      "Total Amount": 943.4,
+      "Average Price": 85.76,
+      "Total Quantity": 11,
+      "Apr-2025": 0.0,
+      "May-2025": 9.0,
+      "Jun-2025": 2.0
+    },
+    {
+      "SKU": "147",
+      "Item Name": "Cheese Burst",
+      "Category": "Others",
+      "Subcategory": null,
+      "Total Amount": 1184.43,
+      "Average Price": 49.35,
+      "Total Quantity": 24,
+      "Apr-2025": 0.0,
+      "May-2025": 14.0,
+      "Jun-2025": 10.0
+    },
+    {
+      "SKU": "148",
+      "Item Name": "Double Cheese Burst",
+      "Category": "Others",
+      "Subcategory": null,
+      "Total Amount": 582.0,
+      "Average Price": 52.91,
+      "Total Quantity": 11,
+      "Apr-2025": 0.0,
+      "May-2025": 6.0,
+      "Jun-2025": 5.0
+    },
+    {
+      "SKU": "149",
+      "Item Name": "Regular Cheese",
+      "Category": "Others",
+      "Subcategory": null,
+      "Total Amount": 825.61,
+      "Average Price": 19.66,
+      "Total Quantity": 42,
+      "Apr-2025": 0.0,
+      "May-2025": 24.0,
+      "Jun-2025": 18.0
+    },
+    {
+      "SKU": "150",
+      "Item Name": "Fried Momos",
+      "Category": "Others",
+      "Subcategory": null,
+      "Total Amount": 483.21,
+      "Average Price": 9.12,
+      "Total Quantity": 53,
+      "Apr-2025": 0.0,
+      "May-2025": 36.0,
+      "Jun-2025": 17.0
+    }
+  ],
+  "warnings": [],
+  "header_suggestion": null,
+  "raw_rows": [
+    {
+      "index": 0,
+      "cells": [
+        "SKU",
+        "Item Name",
+        "Category",
+        "Subcategory",
+        "Total Amount",
+        "Average Price",
+        "Total Quantity",
+        "Apr-2025",
+        "May-2025",
+        "Jun-2025"
+      ]
+    },
+    {
+      "index": 1,
+      "cells": [
+        "1",
+        "Nutella",
+        "Others",
+        "",
+        "943.4",
+        "85.76",
+        "11",
+        "0.0",
+        "9.0",
+        "2.0"
+      ]
+    },
+    {
+      "index": 2,
+      "cells": [
+        "147",
+        "Cheese Burst",
+        "Others",
+        "",
+        "1184.43",
+        "49.35",
+        "24",
+        "0.0",
+        "14.0",
+        "10.0"
+      ]
+    },
+    {
+      "index": 3,
+      "cells": [
+        "148",
+        "Double Cheese Burst",
+        "Others",
+        "",
+        "582.0",
+        "52.91",
+        "11",
+        "0.0",
+        "6.0",
+        "5.0"
+      ]
+    },
+    {
+      "index": 4,
+      "cells": [
+        "149",
+        "Regular Cheese",
+        "Others",
+        "",
+        "825.61",
+        "19.66",
+        "42",
+        "0.0",
+        "24.0",
+        "18.0"
+      ]
+    },
+    {
+      "index": 5,
+      "cells": [
+        "150",
+        "Fried Momos",
+        "Others",
+        "",
+        "483.21",
+        "9.12",
+        "53",
+        "0.0",
+        "36.0",
+        "17.0"
+      ]
+    },
+    {
+      "index": 6,
+      "cells": [
+        "151",
+        "Paprika Paneer Pizza",
+        "Pizza (8 inches)",
+        "",
+        "597.0",
+        "298.5",
+        "2",
+        "0.0",
+        "1.0",
+        "1.0"
+      ]
+    },
+    {
+      "index": 7,
+      "cells": [
+        "151",
+        "Paprika Paneer Pizza",
+        "Pizza (8 inches) & Garlic Bread",
+        "",
+        "464.28",
+        "232.14",
+        "2",
+        "0.0",
+        "",
+        "2.0"
+      ]
+    }
+  ]
+}

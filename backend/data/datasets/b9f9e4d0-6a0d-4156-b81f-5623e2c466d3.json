@@ -1,0 +1,455 @@
+{
+  "id": "b9f9e4d0-6a0d-4156-b81f-5623e2c466d3",
+  "saved_at": "2026-06-01T19:57:49.213549+00:00",
+  "success": true,
+  "filename": "Orders_Master_Report_2025_05_13_11_11_13.xlsx",
+  "encoding": {
+    "encoding": "Windows-1252",
+    "confidence": 0.73
+  },
+  "shape": {
+    "rows": 7234,
+    "columns": 31
+  },
+  "schema": [
+    {
+      "name": "Invoice No.",
+      "type": "datetime",
+      "null_count": 0,
+      "null_pct": 0.0
+    },
+    {
+      "name": "Date",
+      "type": "datetime",
+      "null_count": 4,
+      "null_pct": 0.1
+    },
+    {
+      "name": "Payment Type",
+      "type": "categorical",
+      "null_count": 4,
+      "null_pct": 0.1,
+      "top_values": [
+        "Other [UPI]",
+        "Cash",
+        "Online",
+        "Part Payment",
+        "CARD"
+      ]
+    },
+    {
+      "name": "Payment Description",
+      "type": "text",
+      "null_count": 7210,
+      "null_pct": 99.7
+    },
+    {
+      "name": "Order Type",
+      "type": "categorical",
+      "null_count": 4,
+      "null_pct": 0.1,
+      "top_values": [
+        "Dine In",
+        "Delivery(Parcel)",
+        "Pick Up"
+      ]
+    },
+    {
+      "name": "Status",
+      "type": "categorical",
+      "null_count": 4,
+      "null_pct": 0.1,
+      "top_values": [
+        "Success"
+      ]
+    },
+    {
+      "name": "Area",
+      "type": "categorical",
+      "null_count": 6549,
+      "null_pct": 90.5,
+      "top_values": [
+        "Zomato"
+      ]
+    },
+    {
+      "name": "Sub Order Type",
+      "type": "categorical",
+      "null_count": 4,
+      "null_pct": 0.1,
+      "top_values": [
+        "Dine In",
+        "Zomato",
+        "Pick Up"
+      ]
+    },
+    {
+      "name": "Group Name",
+      "type": "categorical",
+      "null_count": 1897,
+      "null_pct": 26.2,
+      "top_values": [
+        "Dine In Menu",
+        "Zomato Menu",
+        "Dine In Menu, Zomato Menu"
+      ]
+    },
+    {
+      "name": "Brand Name",
+      "type": "float",
+      "null_count": 7234,
+      "null_pct": 100.0
+    },
+    {
+      "name": "GSTIN",
+      "type": "float",
+      "null_count": 7234,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Assign To",
+      "type": "float",
+      "null_count": 7234,
+      "null_pct": 100.0
+    },
+    {
+      "name": "Phone",
+      "type": "float",
+      "null_count": 1984,
+      "null_pct": 27.4,
+      "min": 1140845325.0,
+      "max": 9988469999.0,
+      "mean": 8673058099.4463
+    },
+    {
+      "name": "Name",
+      "type": "text",
+      "null_count": 1316,
+      "null_pct": 18.2
+    },
+    {
+      "name": "Order Cancel Reason",
+      "type": "float",
+      "null_count": 7234,
+      "null_pct": 100.0
+    },
+    {
+      "name": "My Amount (₹)",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 10.0,
+      "max": 3985766.45,
+      "mean": 1103.2724
+    },
+    {
+      "name": "Discount (₹)",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 81076.69,
+      "mean": 22.538
+    },
+    {
+      "name": "Net Sales (₹)(M.A - D)",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 3904689.76,
+      "mean": 1080.8429
+    },
+    {
+      "name": "Delivery Charge",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 448.0,
+      "mean": 0.1391
+    },
+    {
+      "name": "Total Tax (₹)",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 47631.0,
+      "mean": 13.2015
+    },
+    {
+      "name": "Round Off",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": -1143.56,
+      "max": 0.0,
+      "mean": -0.3162
+    },
+    {
+      "name": "Waived off",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": -3304.0,
+      "max": 725.0,
+      "mean": -0.8133
+    },
+    {
+      "name": "Total (₹)",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 3981198.0,
+      "mean": 1101.9968
+    },
+    {
+      "name": "Online Tax Calculated",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 9786.9,
+      "mean": 2.7197
+    },
+    {
+      "name": "GST Paid by Merchant",
+      "type": "integer",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "mean": 0.0
+    },
+    {
+      "name": "GST Paid by Ecommerce",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 9786.9,
+      "mean": 2.7197
+    },
+    {
+      "name": "Non Taxable",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 2952247.01,
+      "mean": 817.5007
+    },
+    {
+      "name": "Amount (SGST)",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 952442.71,
+      "mean": 263.9814
+    },
+    {
+      "name": "SGST",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 23815.5,
+      "mean": 6.6008
+    },
+    {
+      "name": "Amount (CGST)",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 952442.71,
+      "mean": 263.9814
+    },
+    {
+      "name": "CGST",
+      "type": "float",
+      "null_count": 0,
+      "null_pct": 0.0,
+      "min": 0.0,
+      "max": 23815.5,
+      "mean": 6.6008
+    }
+  ],
+  "sample_rows": [
+    {
+      "Invoice No.": "Total",
+      "Date": null,
+      "Payment Type": null,
+      "Payment Description": null,
+      "Order Type": null,
+      "Status": null,
+      "Area": null,
+      "Sub Order Type": null,
+      "Group Name": null,
+      "Brand Name": null,
+      "GSTIN": null,
+      "Assign To": null,
+      "Phone": null,
+      "Name": null,
+      "Order Cancel Reason": null,
+      "My Amount (₹)": 3985766.45,
+      "Discount (₹)": 81076.69,
+      "Net Sales (₹)(M.A - D)": 3904689.76,
+      "Delivery Charge": 448.0,
+      "Total Tax (₹)": 47631.0,
+      "Round Off": -1143.56,
+      "Waived off": -3304.0,
+      "Total (₹)": 3981198.0,
+      "Online Tax Calculated": 9786.9,
+      "GST Paid by Merchant": 0,
+      "GST Paid by Ecommerce": 9786.9,
+      "Non Taxable": 2952247.01,
+      "Amount (SGST)": 952442.71,
+      "SGST": 23815.5,
+      "Amount (CGST)": 952442.71,
+      "CGST": 23815.5
+    },
+    {
+      "Invoice No.": "Min.",
+      "Date": null,
+      "Payment Type": null,
+      "Payment Description": null,
+      "Order Type": null,
+      "Status": null,
+      "Area": null,
+      "Sub Order Type": null,
+      "Group Name": null,
+      "Brand Name": null,
+      "GSTIN": null,
+      "Assign To": null,
+      "Phone": null,
+      "Name": null,
+      "Order Cancel Reason": null,
+      "My Amount (₹)": 10.0,
+      "Discount (₹)": 0.0,
+      "Net Sales (₹)(M.A - D)": 0.0,
+      "Delivery Charge": 0.0,
+      "Total Tax (₹)": 0.0,
+      "Round Off": 0.0,
+      "Waived off": 0.0,
+      "Total (₹)": 0.0,
+      "Online Tax Calculated": 0.0,
+      "GST Paid by Merchant": 0,
+      "GST Paid by Ecommerce": 0.0,
+      "Non Taxable": 0.0,
+      "Amount (SGST)": 0.0,
+      "SGST": 0.0,
+      "Amount (CGST)": 0.0,
+      "CGST": 0.0
+    },
+    {
+      "Invoice No.": "Max.",
+      "Date": null,
+      "Payment Type": null,
+      "Payment Description": null,
+      "Order Type": null,
+      "Status": null,
+      "Area": null,
+      "Sub Order Type": null,
+      "Group Name": null,
+      "Brand Name": null,
+      "GSTIN": null,
+      "Assign To": null,
+      "Phone": null,
+      "Name": null,
+      "Order Cancel Reason": null,
+      "My Amount (₹)": 8978.0,
+      "Discount (₹)": 875.0,
+      "Net Sales (₹)(M.A - D)": 8898.0,
+      "Delivery Charge": 110.0,
+      "Total Tax (₹)": 231.2,
+      "Round Off": 0.0,
+      "Waived off": 725.0,
+      "Total (₹)": 8898.0,
+      "Online Tax Calculated": 99.04,
+      "GST Paid by Merchant": 0,
+      "GST Paid by Ecommerce": 99.04,
+      "Non Taxable": 8898.0,
+      "Amount (SGST)": 4624.0,
+      "SGST": 115.6,
+      "Amount (CGST)": 4624.0,
+      "CGST": 115.6
+    },
+    {
+      "Invoice No.": "Avg.",
+      "Date": null,
+      "Payment Type": null,
+      "Payment Description": null,
+      "Order Type": null,
+      "Status": null,
+      "Area": null,
+      "Sub Order Type": null,
+      "Group Name": null,
+      "Brand Name": null,
+      "GSTIN": null,
+      "Assign To": null,
+      "Phone": null,
+      "Name": null,
+      "Order Cancel Reason": null,
+      "My Amount (₹)": 551.28,
+      "Discount (₹)": 11.21,
+      "Net Sales (₹)(M.A - D)": 540.07,
+      "Delivery Charge": 0.06,
+      "Total Tax (₹)": 6.59,
+      "Round Off": -0.16,
+      "Waived off": -0.46,
+      "Total (₹)": 550.65,
+      "Online Tax Calculated": 1.35,
+      "GST Paid by Merchant": 0,
+      "GST Paid by Ecommerce": 1.35,
+      "Non Taxable": 408.33,
+      "Amount (SGST)": 131.73,
+      "SGST": 3.29,
+      "Amount (CGST)": 131.73,
+      "CGST": 3.29
+    },
+    {
+      "Invoice No.": 765,
+      "Date": "2025-05-06 14:30:04",
+      "Payment Type": "Cash",
+      "Payment Description": null,
+      "Order Type": "Dine In",
+      "Status": "Success",
+      "Area": null,
+      "Sub Order Type": "Dine In",
+      "Group Name": "Dine In Menu",
+      "Brand Name": null,
+      "GSTIN": null,
+      "Assign To": null,
+      "Phone": 9370044570.0,
+      "Name": "Anjali Gahule",
+      "Order Cancel Reason": null,
+      "My Amount (₹)": 274.0,
+      "Discount (₹)": 0.0,
+      "Net Sales (₹)(M.A - D)": 274.0,
+      "Delivery Charge": 0.0,
+      "Total Tax (₹)": 13.7,
+      "Round Off": -0.7,
+      "Waived off": 3.0,
+      "Total (₹)": 290.0,
+      "Online Tax Calculated": 0.0,
+      "GST Paid by Merchant": 0,
+      "GST Paid by Ecommerce": 0.0,
+      "Non Taxable": 0.0,
+      "Amount (SGST)": 274.0,
+      "SGST": 6.85,
+      "Amount (CGST)": 274.0,
+      "CGST": 6.85
+    }
+  ],
+  "warnings": [
+    "Re-parsed using row 5 as header"
+  ],
+  "header_suggestion": null,
+  "raw_rows": [],
+  "insight": "**Data Quality Report**\n\nThis dataset, \"Orders_Master_Report_2025_05_13_11_11_13.xlsx\", appears to contain information on orders made by customers, including invoice details, payment methods, order status, and financial data.\n\n**Data Quality Issues:**\n1. Missing values: 26% of the data is missing, with the most frequent missing value locations being `Brand Name`, `GSTIN`, `Assign To`, `Phone`, `Name`, `Order Cancel Reason`, and several categorical columns (e.g., `Payment Type`, `Order Type`, `Sub Order Type`, `Group Name`).\n2. Suspicious columns: `Payment Description` has 99.7% missing values, suggesting that this column may not be necessary or useful for analysis.\n3. Type issues: `GSTIN` and `Brand Name` are expected to be numerical values, but they have a large proportion of missing data.\n\n**Interesting Patterns or Relationships:**\n1. The mean value of `Phone` is relatively high (8673058099.4463), suggesting that this column may contain phone numbers instead of financial amounts.\n2. The distribution of `Non Taxable` and `Amount (SGST)` values ranges from 0 to 952442.71, indicating a potential issue with the data scale.\n\n**Recommendations:**\n1. Preprocess missing values using imputation techniques (e.g., mean/median imputation for numerical columns).\n2. Investigate why `Payment Description` has such high missing values.\n3. Consider dropping or transforming the `Payment Description` column if it does not contribute to the analysis.\n4. Check and correct the data type of `GSTIN`, `Brand Name`, and potentially other categorical columns to ensure consistency with expected formats.\n\nBy addressing these data quality issues, further analysis can be conducted to explore meaningful relationships between variables and gain insights into order behavior, customer demographics, and financial performance.",
+  "insight_model": "llama3.2:3b"
+}
