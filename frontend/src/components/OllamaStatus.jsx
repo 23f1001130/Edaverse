@@ -21,9 +21,9 @@ export default function OllamaStatus({ onModel }) {
   if (!status.running) return (
     <div className="ollama-badge offline">
       <span className="ollama-dot" />
-      Ollama offline —
-      <a href="https://ollama.com" target="_blank" rel="noreferrer"> install</a>
-      , then run <code>ollama pull llama3.2:3b</code>
+      AI unavailable —
+      <a href="https://ollama.com" target="_blank" rel="noreferrer"> install Ollama</a>
+      {' '}and run <code>ollama pull llama3.2:3b</code> locally to enable
     </div>
   )
 

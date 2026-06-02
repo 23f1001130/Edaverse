@@ -13,3 +13,8 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Deploy data
+backend/data/datasets/*.json
+backend/data/datasets/*.parquet
+backend/data/datasets/*.csv
