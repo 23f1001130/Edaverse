@@ -22,7 +22,7 @@ mkdir -p /var/www/dataflow-backend
 mkdir -p /var/www/dataflow-frontend
 
 # Clone repo into both locations (same repo, different purposes)
-REPO_URL="REPLACE_WITH_YOUR_GITHUB_REPO_URL"
+REPO_URL="https://github.com/23f1001130/dataflow"
 
 git clone $REPO_URL /var/www/dataflow-backend
 git clone $REPO_URL /var/www/dataflow-frontend
