@@ -106,11 +106,20 @@ def compute_distributions(df: pd.DataFrame, schema: list) -> list:
                         "reason": f"Single value ({series.iloc[0]})",
                     })
                     continue
-                vc = series.value_counts().head(10)
+                vc_full = series.value_counts()
+                vc = vc_full.head(10)
+                nn = series.dropna()
                 results.append({
                     "column": col, "type": "barchart", "col_type": col_type,
                     "values": [{"value": str(k), "count": int(v)} for k, v in vc.items()],
                     "total_unique": int(nuniq),
+                    "cat_stats": {
+                        "unique": int(nuniq),
+                        "top": str(vc_full.index[0]) if len(vc_full) else None,
+                        "freq": int(vc_full.iloc[0]) if len(vc_full) else 0,
+                        "freq_pct": round(vc_full.iloc[0] / len(nn) * 100, 1) if len(nn) else 0,
+                        "count": int(len(nn)),
+                    },
                 })
             except Exception:
                 pass

@@ -31,3 +31,8 @@ export async function deleteDataset(id) {
   const res = await axios.delete(`${BASE}/api/datasets/${id}`)
   return res.data
 }
+
+export async function loadDemo() {
+  const res = await axios.post(`${BASE}/api/demo`)
+  return res.data
+}

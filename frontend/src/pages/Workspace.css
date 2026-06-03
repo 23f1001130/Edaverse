@@ -1,0 +1,64 @@
+.ws { display: flex; min-height: 100vh; }
+
+/* Icon sidebar */
+.ws-iconbar {
+  width: 60px; background: var(--bg-elevated);
+  border-right: 1px solid var(--border-subtle);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 16px 0; gap: 8px; flex-shrink: 0;
+  position: sticky; top: 0; height: 100vh;
+}
+.ws-logo {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: var(--accent); color: white; border: none;
+  font-size: 18px; cursor: pointer; margin-bottom: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.ws-logo:hover { background: var(--accent-hover); }
+.ws-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: transparent; color: var(--text-tertiary); border: none;
+  font-size: 18px; cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.ws-icon:hover { background: var(--bg-card); color: var(--text-secondary); }
+.ws-icon.active { background: var(--accent-glow); color: var(--accent-light); }
+.ws-icon.disabled { opacity: 0.3; cursor: default; }
+.ws-icon.disabled:hover { background: transparent; color: var(--text-tertiary); }
+
+.ws-content { flex: 1; min-width: 0; }
+
+/* Topbar */
+.ws-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 28px; border-bottom: 1px solid var(--border-subtle);
+}
+.ws-breadcrumb { display: flex; align-items: center; gap: 10px; }
+.ws-bc-workspace { font-size: 15px; font-weight: 700; }
+.ws-bc-sep { color: var(--text-muted); }
+.ws-bc-current { font-size: 14px; color: var(--text-secondary); font-family: var(--font-mono); }
+
+/* Upload screen */
+.ws-upload-screen { }
+.ws-error {
+  max-width: 600px; margin: 20px auto; padding: 14px 18px;
+  background: var(--red-bg); border: 1px solid rgba(239,68,68,0.3);
+  border-radius: var(--radius); color: var(--red); font-size: 14px;
+}
+
+/* Settings */
+.ws-panel { }
+.ws-settings { max-width: 600px; margin: 40px auto; padding: 0 28px; }
+.ws-settings h3 { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+.ws-settings-note { font-size: 14px; color: var(--text-secondary); margin-bottom: 28px; line-height: 1.6; }
+.ws-setting-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 0; border-bottom: 1px solid var(--border-subtle);
+  font-size: 14px;
+}
+.ws-setting-val { color: var(--text-secondary); font-family: var(--font-mono); }
+
+.ws-demo-link { text-align: center; margin-top: 24px; }
+.ws-demo-link button { background: none; border: none; color: var(--accent-light); font-size: 14px; font-weight: 500; cursor: pointer; }
+.ws-demo-link button:hover { text-decoration: underline; }

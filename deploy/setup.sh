@@ -18,47 +18,42 @@ fi
 
 # Create directories
 mkdir -p /var/www/dataflow
-mkdir -p /var/www/dataflow-backend
-mkdir -p /var/www/dataflow-frontend
+mkdir -p /var/www/html/dataflow
 
-# Clone repo into both locations (same repo, different purposes)
+# Clone repo (monorepo with backend + frontend)
 REPO_URL="https://github.com/23f1001130/dataflow"
-
-git clone $REPO_URL /var/www/dataflow-backend
-git clone $REPO_URL /var/www/dataflow-frontend
+git clone $REPO_URL /var/www/dataflow
 
 # Setup Python backend
-cd /var/www/dataflow-backend/backend
+cd /var/www/dataflow/backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
 # Create data directory
-mkdir -p /var/www/dataflow-backend/backend/data/datasets
-chown -R www-data:www-data /var/www/dataflow-backend/backend/data
-
-# Move backend app to correct location
-cp -r /var/www/dataflow-backend/backend/* /var/www/dataflow-backend/
-python3 -m venv /var/www/dataflow-backend/venv
-/var/www/dataflow-backend/venv/bin/pip install -r /var/www/dataflow-backend/requirements.txt
+mkdir -p data/datasets
+chown -R www-data:www-data data
 
 # Build frontend
-cd /var/www/dataflow-frontend/frontend
+cd /var/www/dataflow/frontend
 npm install --legacy-peer-deps
 VITE_API_URL="" npm run build
-cp -r dist/* /var/www/dataflow/
+cp -r dist/* /var/www/html/dataflow/
 
 # Setup nginx
-cp /var/www/dataflow-backend/deploy/nginx.conf /etc/nginx/sites-available/dataflow
+cp /var/www/dataflow/deploy/nginx.conf /etc/nginx/sites-available/dataflow
 ln -sf /etc/nginx/sites-available/dataflow /etc/nginx/sites-enabled/dataflow
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl restart nginx
 
 # Setup systemd service
-cp /var/www/dataflow-backend/deploy/dataflow.service /etc/systemd/system/
+cp /var/www/dataflow/deploy/dataflow.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable dataflow
 systemctl start dataflow
+
+# Set proper permissions
+chown -R www-data:www-data /var/www/html/dataflow
 
 echo "=== Setup complete ==="
 echo "Visit http://$(curl -s ifconfig.me) to see your app"

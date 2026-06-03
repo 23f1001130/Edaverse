@@ -1,0 +1,89 @@
+.nar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; animation: fade .2s; }
+@keyframes fade { from { opacity: 0; } }
+.nar-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 540px; max-width: 90vw;
+  background: var(--bg-elevated); border-left: 1px solid var(--border-default);
+  z-index: 51; display: flex; flex-direction: column;
+  animation: slide .25s cubic-bezier(0.16,1,0.3,1);
+  box-shadow: -20px 0 60px rgba(0,0,0,0.4);
+}
+@keyframes slide { from { transform: translateX(100%); } }
+.nar-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px; border-bottom: 1px solid var(--border-subtle);
+}
+.nar-title { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; }
+.nar-title span { color: var(--accent-light); }
+.nar-close { background: none; border: none; color: var(--text-tertiary); font-size: 24px; cursor: pointer; line-height: 1; }
+.nar-close:hover { color: var(--text-primary); }
+.nar-body { flex: 1; overflow-y: auto; padding: 24px; }
+.nar-loading { display: flex; align-items: center; gap: 12px; color: var(--text-tertiary); font-size: 14px; }
+.nar-offline { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+.nar-offline a { color: var(--accent-light); }
+.nar-offline code { display: block; margin-top: 8px; background: var(--bg-input); padding: 10px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: 13px; color: var(--accent-light); }
+.nar-model { font-size: 11px; color: var(--text-muted); margin-bottom: 14px; font-family: var(--font-mono); }
+.nar-insight p { font-size: 14px; line-height: 1.7; color: var(--text-secondary); margin-bottom: 12px; }
+.nar-insight strong { color: var(--text-primary); }
+.nar-chat { margin-top: 24px; border-top: 1px solid var(--border-subtle); padding-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+.nar-msg { font-size: 14px; line-height: 1.6; padding: 12px 14px; border-radius: 12px; white-space: pre-wrap; }
+.nar-msg.user { background: var(--accent); color: white; align-self: flex-end; max-width: 85%; border-radius: 12px 12px 2px 12px; }
+.nar-msg.assistant { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-subtle); border-radius: 12px 12px 12px 2px; }
+.nar-cursor { animation: blink .7s infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.nar-input-wrap { display: flex; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--border-subtle); }
+.nar-input { flex: 1; background: var(--bg-input); border: 1px solid var(--border-default); border-radius: 10px; padding: 12px 14px; color: var(--text-primary); font-size: 14px; outline: none; }
+.nar-input:focus { border-color: var(--accent); }
+.nar-send { width: 40px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; }
+.nar-send:disabled { opacity: 0.4; cursor: default; }
+
+.nar-providers { padding: 16px 24px; border-bottom: 1px solid var(--border-subtle); }
+.nar-prov-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.nar-prov { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 12px; font-size: 12px; color: var(--text-secondary); cursor: pointer; transition: all .15s; }
+.nar-prov:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.nar-prov.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent-light); }
+.nar-prov-hint { font-size: 11px; color: var(--text-tertiary); margin-bottom: 8px; }
+.nar-key-row { display: flex; flex-direction: column; gap: 6px; }
+.nar-key-input { background: var(--bg-input); border: 1px solid var(--border-default); border-radius: 8px; padding: 9px 12px; color: var(--text-primary); font-size: 13px; font-family: var(--font-mono); outline: none; }
+.nar-key-input:focus { border-color: var(--accent); }
+.nar-key-note { font-size: 10.5px; color: var(--text-muted); line-height: 1.4; }
+.nar-key-note a { color: var(--accent-light); }
+.nar-key-note code { background: var(--bg-input); padding: 1px 5px; border-radius: 4px; font-family: var(--font-mono); }
+.nar-generate { width: 100%; background: var(--accent); color: white; border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nar-generate:hover:not(:disabled) { background: var(--accent-hover); }
+.nar-generate:disabled { opacity: 0.4; cursor: default; }
+
+.nar-model-row { display: flex; gap: 8px; }
+.nar-model-select {
+  background: var(--bg-input); border: 1px solid var(--border-default);
+  border-radius: 8px; padding: 9px 12px; color: var(--text-primary);
+  font-size: 13px; font-family: var(--font-mono); outline: none; cursor: pointer;
+  flex: 1;
+}
+.nar-model-select:focus { border-color: var(--accent); }
+.nar-model-custom {
+  flex: 1; background: var(--bg-input); border: 1px solid var(--border-default);
+  border-radius: 8px; padding: 9px 12px; color: var(--text-primary);
+  font-size: 13px; font-family: var(--font-mono); outline: none;
+}
+.nar-model-custom:focus { border-color: var(--accent); }
+
+.nar-key-input-wrap { display: flex; gap: 8px; }
+.nar-key-input-wrap .nar-key-input { flex: 1; }
+.nar-key-clear {
+  background: var(--bg-card); border: 1px solid var(--border-default);
+  border-radius: 8px; padding: 0 14px; font-size: 12px; color: var(--text-secondary);
+  cursor: pointer; white-space: nowrap; transition: all .15s;
+}
+.nar-key-clear:hover { background: var(--red-bg); border-color: rgba(239,68,68,0.3); color: var(--red); }
+
+.nar-chat-head { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-tertiary); margin-bottom: 4px; }
+.nar-chat-clear { background: none; border: none; color: var(--text-tertiary); font-size: 11px; cursor: pointer; }
+.nar-chat-clear:hover { color: var(--text-secondary); text-decoration: underline; }
+.nar-msg.error { background: var(--red-bg); border: 1px solid rgba(239,68,68,0.25); color: #fca5a5; align-self: stretch; max-width: 100%; }
+
+.nar-prov { position: relative; }
+.nar-prov-dot {
+  position: absolute; top: 4px; right: 4px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+}

@@ -1,0 +1,53 @@
+.tab-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.tab-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.stat-box {
+  background: var(--bg-card); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius); padding: 18px 20px;
+}
+.stat-box-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: var(--text-tertiary); text-transform: uppercase; }
+.stat-box-value { font-size: 28px; font-weight: 700; font-family: var(--font-mono); margin-top: 8px; }
+.stat-box-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+
+.panel {
+  background: var(--bg-card); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius); padding: 20px;
+}
+.panel-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+
+.mini-bars { display: flex; flex-direction: column; gap: 8px; }
+.mini-bar-row { display: flex; align-items: center; gap: 10px; }
+.mini-bar-name { font-size: 12px; font-family: var(--font-mono); color: var(--text-secondary); width: 120px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-bar-track { flex: 1; height: 6px; background: var(--border-subtle); border-radius: 3px; overflow: hidden; }
+.mini-bar-fill { height: 100%; border-radius: 3px; }
+.mini-bar-val { font-size: 11px; font-family: var(--font-mono); min-width: 42px; text-align: right; }
+
+.tab-empty { text-align: center; padding: 60px 0; color: var(--text-tertiary); font-size: 14px; }
+
+/* Distributions grid (small multiples) */
+.dist-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.dist-filters { display: flex; gap: 6px; }
+.dist-filter { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 20px; padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; transition: all .15s; }
+.dist-filter span { font-size: 11px; background: var(--bg-input); padding: 1px 6px; border-radius: 10px; }
+.dist-filter:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.dist-filter.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.dist-filter.active span { background: rgba(255,255,255,0.2); color: #fff; }
+.dist-hint { font-size: 12px; color: var(--text-muted); }
+
+.dist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.dist-mini { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: 14px; cursor: pointer; text-align: left; transition: all .15s; }
+.dist-mini:hover { border-color: var(--accent); background: var(--bg-card-hover); transform: translateY(-2px); }
+.dist-mini-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.dist-mini-name { font-size: 12px; font-family: var(--font-mono); color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dist-mini-stats { font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono); margin-top: 6px; }
+
+.dist-expanded { }
+.dist-exp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.dist-exp-close { background: var(--bg-card); border: 1px solid var(--border-default); border-radius: 8px; padding: 7px 14px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+.dist-exp-close:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+
+.dist-skipped { margin-top: 20px; }
+.dist-skipped-toggle { background: none; border: none; color: var(--text-tertiary); font-size: 13px; cursor: pointer; padding: 6px 0; }
+.dist-skipped-toggle:hover { color: var(--text-secondary); }
+.dist-skipped-list { margin-top: 10px; padding: 14px; background: var(--bg-card); border-radius: 8px; display: flex; flex-direction: column; gap: 6px; }
+.dist-skipped-item { display: flex; gap: 14px; font-size: 12px; }
+.dist-skipped-item span:first-child { min-width: 180px; }

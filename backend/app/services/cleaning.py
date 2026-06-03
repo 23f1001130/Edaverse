@@ -176,3 +176,45 @@ def get_clean_csv(dataset_id: str) -> bytes | None:
     if c.exists():
         return c.read_bytes()
     return None
+
+
+def promote_cleaned(dataset_id: str) -> dict:
+    """Replace the active dataset's data with the cleaned version,
+    keeping a backup of the original so it can be restored."""
+    import shutil
+    clean_parquet = DATA_DIR / f"{dataset_id}_clean.parquet"
+    clean_csv = DATA_DIR / f"{dataset_id}_clean.csv"
+    main_parquet = DATA_DIR / f"{dataset_id}.parquet"
+    backup_parquet = DATA_DIR / f"{dataset_id}_original.parquet"
+
+    src = clean_parquet if clean_parquet.exists() else (clean_csv if clean_csv.exists() else None)
+    if src is None:
+        return {"error": "No cleaned data found — run cleaning first"}
+
+    # Backup original once
+    if main_parquet.exists() and not backup_parquet.exists():
+        shutil.copy(main_parquet, backup_parquet)
+
+    # Load cleaned, recompute schema, save as the main dataset
+    if src.suffix == ".parquet":
+        df = pd.read_parquet(src)
+    else:
+        df = pd.read_csv(src)
+
+    df.to_parquet(main_parquet, index=False)
+    return {"ok": True, "df": df}
+
+
+def has_original_backup(dataset_id: str) -> bool:
+    return (DATA_DIR / f"{dataset_id}_original.parquet").exists()
+
+
+def restore_original(dataset_id: str) -> dict:
+    import shutil
+    backup = DATA_DIR / f"{dataset_id}_original.parquet"
+    main = DATA_DIR / f"{dataset_id}.parquet"
+    if not backup.exists():
+        return {"error": "No original backup found"}
+    shutil.copy(backup, main)
+    df = pd.read_parquet(main)
+    return {"ok": True, "df": df}

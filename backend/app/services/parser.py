@@ -155,9 +155,19 @@ def build_column_schema(df: pd.DataFrame) -> list[dict]:
             col_info["max"] = safe_float(non_null.max())
             col_info["mean"] = safe_float(round(float(non_null.mean()), 4))
 
-        if col_type == "categorical":
-            vc = series.value_counts().head(5)
-            col_info["top_values"] = vc.index.tolist()
+        if col_type in ("categorical", "text", "boolean"):
+            try:
+                nn = series.dropna()
+                nuniq = int(nn.nunique())
+                col_info["unique"] = nuniq
+                if len(nn) > 0:
+                    vc = nn.value_counts()
+                    col_info["top"] = str(vc.index[0])
+                    col_info["freq"] = int(vc.iloc[0])
+                    col_info["freq_pct"] = round(vc.iloc[0] / len(nn) * 100, 1)
+                    col_info["top_values"] = [str(v) for v in vc.head(5).index.tolist()]
+            except Exception:
+                pass
 
         schema.append(col_info)
 
