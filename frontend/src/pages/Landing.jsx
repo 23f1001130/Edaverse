@@ -1,7 +1,10 @@
 import React from 'react'
+import { useAuth, UserButton } from '@clerk/clerk-react'
 import './Landing.css'
 
-export default function Landing({ onGetStarted, onDemo }) {
+export default function Landing({ onSignIn, onGetStarted, onDemo }) {
+  const { isSignedIn } = useAuth()
+
   return (
     <div className="landing">
       {/* Nav */}
@@ -15,8 +18,17 @@ export default function Landing({ onGetStarted, onDemo }) {
           <a href="#features">Features</a>
         </div>
         <div className="lnav-actions">
-          <button className="lnav-signin" onClick={onGetStarted}>Sign in</button>
-          <button className="lnav-cta" onClick={onGetStarted}>Get started</button>
+          {isSignedIn ? (
+            <>
+              <UserButton afterSignOutUrl="/" />
+              <button className="lnav-cta" onClick={onGetStarted}>Go to workspace</button>
+            </>
+          ) : (
+            <>
+              <button className="lnav-signin" onClick={onSignIn}>Sign in</button>
+              <button className="lnav-cta" onClick={onGetStarted}>Get started</button>
+            </>
+          )}
         </div>
       </nav>
 

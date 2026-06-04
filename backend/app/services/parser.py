@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import chardet
 import pandas as pd
+import numpy as np
 from typing import Any
 
 DATA_DIR = Path(__file__).parent.parent.parent / "data" / "datasets"
@@ -14,6 +15,11 @@ SAMPLE_ROWS = 5
 SMALL_FILE_THRESHOLD = 50 * 1024 * 1024  # 50MB — below this, load fully
 CHUNK_SIZE = 10_000  # rows per chunk for large files
 SAMPLE_SIZE = 10_000  # rows to sample for schema inference on large files
+
+
+def _finite_numeric(series: pd.Series) -> pd.Series:
+    """Return numeric values with NaN/inf removed before stats."""
+    return pd.to_numeric(series, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
 
 
 def _compute_stats_chunked(filepath_or_buffer, delimiter: str, encoding: str, schema_cols: list) -> dict:
@@ -32,7 +38,7 @@ def _compute_stats_chunked(filepath_or_buffer, delimiter: str, encoding: str, sc
                 s = stats[col]
                 s["total"] += len(chunk[col])
                 s["null_count"] += int(chunk[col].isna().sum())
-                numeric = pd.to_numeric(chunk[col], errors="coerce").dropna()
+                numeric = _finite_numeric(chunk[col])
                 if len(numeric) > 0:
                     cmin = float(numeric.min())
                     cmax = float(numeric.max())
@@ -96,7 +102,7 @@ def infer_column_type(series: pd.Series) -> str:
 
         # Try datetime
         try:
-            parsed = pd.to_datetime(sample, errors="coerce")
+            parsed = pd.to_datetime(sample, errors="coerce", format="mixed")
             if parsed.notna().sum() / len(sample) > 0.8:
                 return "datetime"
         except Exception:
@@ -151,9 +157,18 @@ def build_column_schema(df: pd.DataFrame) -> list[dict]:
                     return f
                 except Exception:
                     return None
-            col_info["min"] = safe_float(non_null.min())
-            col_info["max"] = safe_float(non_null.max())
-            col_info["mean"] = safe_float(round(float(non_null.mean()), 4))
+            numeric = _finite_numeric(non_null)
+            if len(numeric) == 0:
+                schema.append(col_info)
+                continue
+            col_info["min"] = safe_float(numeric.min())
+            col_info["max"] = safe_float(numeric.max())
+            col_info["mean"] = safe_float(round(float(numeric.mean()), 4))
+            col_info["std"] = safe_float(round(float(numeric.std()), 4)) if len(numeric) > 1 else None
+            col_info["median"] = safe_float(round(float(numeric.median()), 4))
+            col_info["q25"] = safe_float(round(float(numeric.quantile(0.25)), 4))
+            col_info["q75"] = safe_float(round(float(numeric.quantile(0.75)), 4))
+            col_info["skewness"] = safe_float(round(float(numeric.skew()), 4)) if len(numeric) > 2 else None
 
         if col_type in ("categorical", "text", "boolean"):
             try:

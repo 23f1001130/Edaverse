@@ -4,13 +4,14 @@ import DistributionsTab from './tabs/DistributionsTab.jsx'
 import CorrelationsTab from './tabs/CorrelationsTab.jsx'
 import TargetTab from './tabs/TargetTab.jsx'
 import CleaningTab from './tabs/CleaningTab.jsx'
+import FeatureEngineeringTab from './tabs/FeatureEngineeringTab.jsx'
 import AINarrative from './AINarrative.jsx'
 import HeaderPicker from './HeaderPicker.jsx'
 import './WorkspaceResults.css'
 
 const BASE = import.meta.env.VITE_API_URL || ''
 
-const TABS = ['Overview', 'Distributions', 'Correlations', 'Target Analysis', 'Cleaning Report']
+const TABS = ['Overview', 'Distributions', 'Correlations', 'Target Analysis', 'Cleaning Report', 'Feature Engineering']
 
 function ColumnRow({ col, active, onClick }) {
   const isNum = ['integer', 'float'].includes(col.type)
@@ -68,7 +69,6 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
 
   return (
     <div className="wr">
-      {/* Top bar */}
       <div className="wr-topbar">
         <div className="wr-breadcrumb">
           <span className="wr-bc-workspace" onClick={onReset} style={{cursor:'pointer'}}>My Workspace</span>
@@ -83,11 +83,16 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
           <button className="wr-export-btn" onClick={() => data.id && window.open(`${BASE}/api/datasets/${data.id}/download`, '_blank')}>
             ↓ Export
           </button>
+          <button className="wr-export-btn" onClick={() => data.id && window.open(`${BASE}/api/datasets/${data.id}/report`, '_blank')}>
+            Report
+          </button>
+          <button className="wr-export-btn" onClick={() => data.id && window.open(`${BASE}/api/datasets/${data.id}/notebook`, '_blank')}>
+            Notebook
+          </button>
         </div>
       </div>
 
       <div className="wr-body">
-        {/* Column sidebar */}
         <aside className="wr-colbar">
           <div className="wr-colbar-header">
             <span>COLUMNS</span>
@@ -113,7 +118,6 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
           </div>
         </aside>
 
-        {/* Main panel */}
         <main className="wr-main">
           {onReparse && (
             <div className="wr-header-picker-wrap">
@@ -146,6 +150,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
                 {tab === 'Correlations' && <CorrelationsTab eda={eda} />}
                 {tab === 'Target Analysis' && <TargetTab data={data} eda={eda} />}
                 {tab === 'Cleaning Report' && <CleaningTab data={data} onDataUpdate={handleDataUpdate} />}
+                {tab === 'Feature Engineering' && <FeatureEngineeringTab data={data} onDataUpdate={handleDataUpdate} />}
               </>
             )}
           </div>
@@ -153,7 +158,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
       </div>
 
       {narrativeOpen && (
-        <AINarrative datasetId={data.id} filename={data.filename} onClose={() => setNarrativeOpen(false)} />
+        <AINarrative datasetId={data.id} filename={data.filename} schema={data.schema || []} onClose={() => setNarrativeOpen(false)} />
       )}
     </div>
   )

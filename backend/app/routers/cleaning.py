@@ -5,9 +5,8 @@ from app.services.cleaning import (
     suggest_fixes, clean_dataset, get_clean_csv, _load_df,
     promote_cleaned, restore_original, has_original_backup,
 )
-from app.services.store import get_dataset, _meta_path
+from app.services.store import get_dataset, save_dataset_record
 from app.services.parser import build_column_schema
-import json
 
 router = APIRouter()
 
@@ -16,13 +15,34 @@ class CleanRequest(BaseModel):
     fix_ids: list[str]
 
 
+class PromoteCleanRequest(BaseModel):
+    fix_ids: list[str] = []
+
+
+def _merge_workflow_ids(dataset_id: str, key: str, ids: list[str]) -> dict | None:
+    data = get_dataset(dataset_id)
+    if not data:
+        return None
+    workflow = data.setdefault("workflow", {})
+    current = set(workflow.get(key, []))
+    current.update(ids or [])
+    workflow[key] = sorted(current)
+    return save_dataset_record(data)
+
+
+def _clear_workflow_state(dataset_id: str) -> dict | None:
+    data = get_dataset(dataset_id)
+    if not data:
+        return None
+    data.pop("workflow", None)
+    return save_dataset_record(data)
+
+
 def _refresh_schema_in_store(dataset_id: str, df):
     """Recompute schema/shape/sample from a dataframe and persist to the metadata json."""
-    path = _meta_path(dataset_id)
-    if not path.exists():
+    data = get_dataset(dataset_id)
+    if not data:
         return None
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
 
     schema = build_column_schema(df)
     import pandas as pd
@@ -42,9 +62,7 @@ def _refresh_schema_in_store(dataset_id: str, df):
     data["schema"] = schema
     data["shape"] = {"rows": len(df), "columns": len(df.columns)}
     data["sample_rows"] = rows
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    return data
+    return save_dataset_record(data)
 
 
 @router.get("/datasets/{dataset_id}/suggestions")
@@ -55,8 +73,12 @@ def get_suggestions(dataset_id: str):
     df = _load_df(dataset_id)
     if df is None:
         raise HTTPException(status_code=404, detail="Dataset data not found")
+    # Rebuild schema live from the actual df so null_pct reflects the current
+    # file, not the cached metadata (which goes stale after promote/restore).
+    live_schema = build_column_schema(df)
+    ignored = dataset.get("workflow", {}).get("applied_cleaning_fix_ids", [])
     return {
-        "suggestions": suggest_fixes(df, dataset.get("schema", [])),
+        "suggestions": suggest_fixes(df, live_schema, ignored),
         "has_backup": has_original_backup(dataset_id),
     }
 
@@ -66,20 +88,24 @@ def clean(dataset_id: str, req: CleanRequest):
     dataset = get_dataset(dataset_id)
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
-    result = clean_dataset(dataset_id, req.fix_ids, dataset.get("schema", []))
+    df = _load_df(dataset_id)
+    live_schema = build_column_schema(df) if df is not None else dataset.get("schema", [])
+    result = clean_dataset(dataset_id, req.fix_ids, live_schema)
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result
 
 
 @router.post("/datasets/{dataset_id}/use-cleaned")
-def use_cleaned(dataset_id: str):
+def use_cleaned(dataset_id: str, req: PromoteCleanRequest | None = None):
     if not get_dataset(dataset_id):
         raise HTTPException(status_code=404, detail="Dataset not found")
     res = promote_cleaned(dataset_id)
     if "error" in res:
         raise HTTPException(status_code=400, detail=res["error"])
     updated = _refresh_schema_in_store(dataset_id, res["df"])
+    if req and req.fix_ids:
+        updated = _merge_workflow_ids(dataset_id, "applied_cleaning_fix_ids", req.fix_ids)
     return {"ok": True, "dataset": updated}
 
 
@@ -91,6 +117,7 @@ def restore(dataset_id: str):
     if "error" in res:
         raise HTTPException(status_code=400, detail=res["error"])
     updated = _refresh_schema_in_store(dataset_id, res["df"])
+    updated = _clear_workflow_state(dataset_id) or updated
     return {"ok": True, "dataset": updated}
 
 

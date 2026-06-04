@@ -1,12 +1,14 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Request
 from typing import Optional
 from app.services.parser import parse_file
 from app.services.store import save_dataset
+from app.services.auth import get_request_user_id
 
 router = APIRouter()
 
 @router.post("/upload")
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...),
     header_row: Optional[str] = Form(None),
 ):
@@ -32,6 +34,6 @@ async def upload_file(
     result = parse_file(filename=file.filename, contents=contents, header_row=hr)
 
     if result.get("success"):
-        result = save_dataset(result)
+        result = save_dataset(result, owner_id=get_request_user_id(request))
 
     return result

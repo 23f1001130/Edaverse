@@ -51,6 +51,16 @@
 .nar-generate { width: 100%; background: var(--accent); color: white; border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .nar-generate:hover:not(:disabled) { background: var(--accent-hover); }
 .nar-generate:disabled { opacity: 0.4; cursor: default; }
+.nar-prompts {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px;
+}
+.nar-prompts button {
+  background: var(--bg-card); border: 1px solid var(--border-subtle);
+  border-radius: 8px; color: var(--text-secondary); cursor: pointer;
+  font-size: 12px; padding: 8px 10px; text-align: left; transition: all .15s;
+}
+.nar-prompts button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-light); background: var(--bg-card-hover); }
+.nar-prompts button:disabled { opacity: .45; cursor: default; }
 
 .nar-model-row { display: flex; gap: 8px; }
 .nar-model-select {

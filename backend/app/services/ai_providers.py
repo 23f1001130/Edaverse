@@ -55,17 +55,23 @@ async def stream_anthropic(messages: list, model: str, api_key: str) -> AsyncGen
         "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
     }
-    # Anthropic uses a separate system param
-    system = ""
+    # Anthropic uses a separate system param. Cache the large dataset context
+    # so multi-turn chat pays the full schema prompt cost only once per cache window.
+    system_parts = []
     conv = []
     for m in messages:
         if m["role"] == "system":
-            system += m["content"] + "\n"
+            system_parts.append({
+                "type": "text",
+                "text": m["content"],
+                "cache_control": {"type": "ephemeral"},
+            })
         else:
             conv.append(m)
+    system = system_parts or "You are a helpful data analyst."
     payload = {
         "model": model, "max_tokens": 1024, "stream": True,
-        "system": system.strip() or "You are a helpful data analyst.",
+        "system": system,
         "messages": conv,
     }
     async with httpx.AsyncClient(timeout=120.0) as client:
@@ -90,6 +96,7 @@ async def stream_anthropic(messages: list, model: str, api_key: str) -> AsyncGen
 DEFAULT_MODELS = {
     "openai": "gpt-4o-mini",
     "groq": "llama-3.3-70b-versatile",
+    # Cheap cloud default. Sonnet/Opus remain selectable from the UI for opt-in escalation.
     "anthropic": "claude-haiku-4-5",
 }
 BASE_URLS = {

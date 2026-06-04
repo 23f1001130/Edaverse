@@ -1,6 +1,32 @@
 import React from 'react'
 import './tabs.css'
 
+function MissingnessMatrix({ matrix }) {
+  if (!matrix?.columns?.length || !matrix?.rows?.length) return null
+  return (
+    <div className="panel" style={{marginTop:16}}>
+      <div className="panel-title">Missingness matrix</div>
+      <div className="miss-matrix-wrap">
+        <div className="miss-matrix-cols" style={{gridTemplateColumns:`repeat(${matrix.columns.length}, 10px)`}}>
+          {matrix.columns.map(c => <span key={c} title={c}>{c.slice(0, 3)}</span>)}
+        </div>
+        <div className="miss-matrix">
+          {matrix.rows.map((r, i) => (
+            <div key={`${r.row}-${i}`} className="miss-matrix-row" style={{gridTemplateColumns:`repeat(${matrix.columns.length}, 10px)`}}>
+              {r.values.map((missing, j) => (
+                <span key={j} title={`${matrix.columns[j]} · row ${r.row}`} className={missing ? 'missing' : 'present'} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{marginTop:10,fontSize:12,color:'var(--text-tertiary)'}}>
+        Sampled up to 80 rows across columns with missing values. Amber cells are missing.
+      </div>
+    </div>
+  )
+}
+
 export default function OverviewTab({ data, eda }) {
   const numeric = data.schema.filter(c => ['integer','float'].includes(c.type)).length
   const categorical = data.schema.length - numeric
@@ -9,6 +35,15 @@ export default function OverviewTab({ data, eda }) {
     : 0
   const nulls = (eda?.nulls || [...data.schema].map(c => ({column:c.name, null_pct:c.null_pct||0})))
     .slice().sort((a,b) => b.null_pct - a.null_pct).slice(0, 8)
+
+  const missingness = eda?.missingness
+  const flaggedPairs = missingness?.flagged_pairs || []
+  const numericProfile = eda?.numeric_profile
+  const categoricalProfile = eda?.categorical_profile
+
+  // Skew summary from schema
+  const skewedCols = data.schema.filter(c => c.skewness != null && Math.abs(c.skewness) > 1)
+    .sort((a,b) => Math.abs(b.skewness) - Math.abs(a.skewness)).slice(0,5)
 
   return (
     <div>
@@ -66,6 +101,82 @@ export default function OverviewTab({ data, eda }) {
           </div>
         </div>
       </div>
+
+      <div className="tab-grid-4" style={{marginTop:16}}>
+        <div className="stat-box">
+          <div className="stat-box-label">Skewed Numerics</div>
+          <div className="stat-box-value">{numericProfile?.skewed_count ?? 0}</div>
+          <div className="stat-box-sub">abs(skew) above 1</div>
+        </div>
+        <div className="stat-box">
+          <div className="stat-box-label">Outlier Columns</div>
+          <div className="stat-box-value">{numericProfile?.outlier_columns ?? 0}</div>
+          <div className="stat-box-sub">IQR fence hits</div>
+        </div>
+        <div className="stat-box">
+          <div className="stat-box-label">High Cardinality</div>
+          <div className="stat-box-value">{categoricalProfile?.high_cardinality_count ?? 0}</div>
+          <div className="stat-box-sub">categorical risk</div>
+        </div>
+        <div className="stat-box">
+          <div className="stat-box-label">Imbalanced Cats</div>
+          <div className="stat-box-value">{categoricalProfile?.imbalanced_count ?? 0}</div>
+          <div className="stat-box-sub">top value dominates</div>
+        </div>
+      </div>
+
+      <MissingnessMatrix matrix={eda?.missingness_matrix} />
+
+      {/* Missingness co-occurrence — MNAR signals */}
+      {flaggedPairs.length > 0 && (
+        <div className="panel" style={{marginTop:16,borderColor:'rgba(251,191,36,0.3)'}}>
+          <div className="panel-title" style={{display:'flex',alignItems:'center',gap:8}}>
+            <span style={{color:'var(--amber)'}}>⚠</span> Possible MNAR patterns detected
+            <span style={{fontSize:11,color:'var(--text-tertiary)',fontWeight:400}}>— columns whose missingness is correlated (not random)</span>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {flaggedPairs.map((p,i) => (
+              <div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 12px',background:'var(--amber-bg)',borderRadius:8}}>
+                <div style={{flex:1}}>
+                  <span style={{fontFamily:'var(--font-mono)',fontSize:13,color:'var(--amber)'}}>{p.a}</span>
+                  <span style={{margin:'0 8px',color:'var(--text-tertiary)'}}>+</span>
+                  <span style={{fontFamily:'var(--font-mono)',fontSize:13,color:'var(--amber)'}}>{p.b}</span>
+                  <span style={{marginLeft:10,fontSize:12,color:'var(--text-secondary)'}}>both missing in {p.actual_pct}% of rows</span>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontSize:11,color:'var(--amber)',fontWeight:600}}>lift {p.lift}×</div>
+                  <div style={{fontSize:10,color:'var(--text-tertiary)'}}>vs {p.expected_pct}% expected</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{marginTop:10,fontSize:12,color:'var(--text-tertiary)'}}>
+            High lift means these columns are missing together far more than random chance — a sign the missing data is Not Missing At Random (MNAR). Consider a missingness indicator feature rather than imputing.
+          </div>
+        </div>
+      )}
+
+      {/* Skewness summary */}
+      {skewedCols.length > 0 && (
+        <div className="panel" style={{marginTop:16}}>
+          <div className="panel-title">Skewed numeric columns</div>
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {skewedCols.map(c => (
+              <div key={c.name} style={{display:'flex',alignItems:'center',gap:12}}>
+                <span style={{fontFamily:'var(--font-mono)',fontSize:12,color:'var(--text-secondary)',width:140,flexShrink:0}}>{c.name}</span>
+                <div style={{flex:1,height:6,background:'var(--border-subtle)',borderRadius:3,overflow:'hidden'}}>
+                  <div style={{height:'100%',width:`${Math.min(Math.abs(c.skewness)/3*100,100)}%`,background:Math.abs(c.skewness)>2?'var(--red)':'var(--amber)',borderRadius:3}} />
+                </div>
+                <span style={{fontSize:12,fontFamily:'var(--font-mono)',minWidth:52,textAlign:'right',color:Math.abs(c.skewness)>2?'#fca5a5':'var(--amber)'}}>
+                  {c.skewness > 0 ? '+' : ''}{c.skewness.toFixed(2)}
+                </span>
+                <span style={{fontSize:11,color:'var(--text-tertiary)'}}>{c.skewness > 0 ? 'right' : 'left'}-skewed</span>
+              </div>
+            ))}
+          </div>
+          <div style={{marginTop:8,fontSize:12,color:'var(--text-tertiary)'}}>Consider log or Box-Cox transforms in the Feature Engineering tab.</div>
+        </div>
+      )}
     </div>
   )
 }

@@ -29,7 +29,7 @@ function humanizeFetchError(err) {
   return 'Something went wrong. Please try again.'
 }
 
-export default function AINarrative({ datasetId, filename, onClose }) {
+export default function AINarrative({ datasetId, filename, schema = [], onClose }) {
   const [status, setStatus] = useState(null)
   const [provider, setProv] = useState('local')
   const [prevProvider, setPrevProvider] = useState('local')
@@ -62,6 +62,15 @@ export default function AINarrative({ datasetId, filename, onClose }) {
 
   const cfg = PROVIDERS.find(p=>p.id===provider)
   const ready = provider==='local' ? status?.running : !!apiKey
+  const canAsk = !!datasetId && !chatting
+  const numericCol = schema.find(c => ['integer', 'float'].includes(c.type))
+  const categoricalCol = schema.find(c => ['categorical', 'text', 'boolean'].includes(c.type))
+  const quickPrompts = [
+    'How many rows?',
+    'What columns are there?',
+    categoricalCol ? `Most common value in ${categoricalCol.name}?` : null,
+    numericCol ? `Average ${numericCol.name}?` : null,
+  ].filter(Boolean)
 
   function setChat(msgs) {
     setSessions(prev => ({
@@ -106,7 +115,7 @@ export default function AINarrative({ datasetId, filename, onClose }) {
   }
 
   async function send(text) {
-    if (!text.trim() || chatting || !ready) return
+    if (!text.trim() || chatting || !datasetId) return
 
     const reqProvider = provider
     const switchedProvider = reqProvider !== prevProvider && (sessions[reqProvider]?.messages||[]).length === 0
@@ -222,6 +231,7 @@ export default function AINarrative({ datasetId, filename, onClose }) {
           {provider==='local' && status && !status.running && (
             <div className="nar-key-note" style={{marginTop:8,color:'var(--amber)'}}>
               Ollama not detected. <a href="https://ollama.com" target="_blank" rel="noreferrer">Install</a> &amp; run <code>ollama pull llama3.2:3b</code>, or pick a cloud provider above.
+              Factual dataset questions still work without a provider.
             </div>
           )}
           {provider==='local' && status?.running && (
@@ -248,6 +258,16 @@ export default function AINarrative({ datasetId, filename, onClose }) {
             </div>
           )}
 
+          {chat.length === 0 && quickPrompts.length > 0 && (
+            <div className="nar-prompts">
+              {quickPrompts.map(p => (
+                <button key={p} onClick={() => send(p)} disabled={!canAsk}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
+
           {chat.length > 0 && (
             <div className="nar-chat">
               <div className="nar-chat-head">
@@ -267,12 +287,12 @@ export default function AINarrative({ datasetId, filename, onClose }) {
 
         <div className="nar-input-wrap">
           <input className="nar-input"
-            placeholder={ready ? `Ask about ${filename}…` : 'Configure a provider above first'}
+            placeholder={ready ? `Ask about ${filename}…` : 'Ask factual questions, or configure a provider for deeper analysis'}
             value={input} onChange={e=>setInput(e.target.value)}
             onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();send(input)}}}
-            disabled={chatting||!ready}
+            disabled={chatting||!datasetId}
           />
-          <button className="nar-send" onClick={()=>send(input)} disabled={!input.trim()||chatting||!ready}>↑</button>
+          <button className="nar-send" onClick={()=>send(input)} disabled={!input.trim()||chatting||!datasetId}>↑</button>
         </div>
       </div>
     </>
