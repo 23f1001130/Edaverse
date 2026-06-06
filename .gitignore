@@ -37,3 +37,4 @@ backend/data/
 .pytest_cache/
 htmlcov/
 .coverage
+DEPLOYMENT.md
