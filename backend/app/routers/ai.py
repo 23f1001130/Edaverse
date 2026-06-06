@@ -81,40 +81,63 @@ RULES:
 
 
 def _workspace_summary(dataset: dict) -> str:
-    """Compressed workspace context — sent when switching providers.
-    Contains only the key facts, not the full per-column detail.
-    Costs ~10x fewer tokens than _full_system for large datasets."""
+    """Compressed workspace context — sent on follow-up messages.
+    Richer than a one-liner but cheaper than _full_system."""
     schema = dataset.get("schema", [])
     shape = dataset.get("shape", {})
     filename = dataset.get("filename", "")
 
     numeric = [c for c in schema if c['type'] in ('integer', 'float')]
     categorical = [c for c in schema if c['type'] in ('categorical', 'text', 'boolean')]
-    high_null = sorted(
-        [c for c in schema if c.get('null_pct', 0) >= 5],
+
+    # All columns with ANY nulls, sorted worst first
+    null_cols = sorted(
+        [c for c in schema if c.get('null_pct', 0) > 0],
         key=lambda c: c['null_pct'], reverse=True
+    )[:10]
+
+    # Top skewed numeric columns
+    skewed = sorted(
+        [c for c in numeric if c.get('skewness') is not None and abs(c['skewness']) > 0.5],
+        key=lambda c: abs(c.get('skewness', 0)), reverse=True
     )[:5]
 
     lines = [
         f"Dataset: {filename}",
         f"Shape: {shape.get('rows','?')} rows × {shape.get('columns','?')} columns",
-        f"Numeric columns ({len(numeric)}): {', '.join(c['name'] for c in numeric[:10])}{'...' if len(numeric)>10 else ''}",
+        f"Numeric columns ({len(numeric)}): {', '.join(c['name'] for c in numeric[:15])}{'...' if len(numeric)>15 else ''}",
         f"Categorical columns ({len(categorical)}): {', '.join(c['name'] for c in categorical[:10])}{'...' if len(categorical)>10 else ''}",
     ]
-    if high_null:
-        lines.append("Columns with significant nulls: " + ', '.join(
-            f"{c['name']} ({c['null_pct']}%)" for c in high_null
+
+    if null_cols:
+        lines.append("Missing values — " + ', '.join(
+            f"{c['name']} {c['null_pct']}%" for c in null_cols
+        ))
+    else:
+        lines.append("Missing values: none")
+
+    if skewed:
+        lines.append("Skewed columns — " + ', '.join(
+            f"{c['name']} (skew {c['skewness']})" for c in skewed
         ))
 
-    # Include any cleaning decisions or insight if they exist
-    if dataset.get("insight"):
-        # Take just the first sentence of the insight as a hint
-        first_sentence = dataset["insight"].split('.')[0][:200]
-        lines.append(f"Previous analysis note: {first_sentence}.")
+    # Key numeric stats for top columns
+    key_stats = []
+    for c in numeric[:8]:
+        if c.get('mean') is not None:
+            key_stats.append(f"{c['name']}: mean={c['mean']}, range=[{c.get('min')}-{c.get('max')}]")
+    if key_stats:
+        lines.append("Key stats — " + ' | '.join(key_stats))
 
-    return "You are a data analyst assistant. Context from the previous session:\n\n" + \
-           '\n'.join(lines) + \
-           "\n\nAnswer questions about this dataset directly and concisely."
+    if dataset.get("insight"):
+        first_sentence = dataset["insight"].split('.')[0][:200]
+        lines.append(f"Prior insight: {first_sentence}.")
+
+    return (
+        "You are a data analyst assistant. You have full knowledge of this dataset:\n\n"
+        + '\n'.join(lines)
+        + "\n\nAnswer all questions directly using the facts above. Never say you lack access to the data."
+    )
 
 
 def _provider_model(provider: str, requested: str | None, local_model: str | None = None) -> str:
@@ -226,6 +249,39 @@ def _deterministic_answer(dataset: dict, question: str) -> str | None:
     if re.search(r"\b(categorical|category|text)\s+columns?\b", q):
         names = _column_list(schema, "categorical")
         return f"Categorical/text columns ({len(names)}): " + (", ".join(names) or "none")
+
+    # Which columns have any nulls / missing values
+    if re.search(r"\b(which|what|list|show).*\b(null|missing|nan)\b|\b(null|missing)\s+columns?\b", q):
+        null_cols = sorted(
+            [c for c in schema if c.get('null_pct', 0) > 0],
+            key=lambda c: c['null_pct'], reverse=True
+        )
+        if not null_cols:
+            return "No columns have missing values in this dataset."
+        return "Columns with missing values: " + ', '.join(
+            f"{c['name']} ({c['null_pct']}%)" for c in null_cols
+        )
+
+    # Highest / most missing column
+    if re.search(r"\b(highest|most|worst|top|maximum|max)\b.*\b(null|missing|nan)\b|\b(null|missing)\b.*\b(highest|most|worst)\b", q):
+        null_cols = sorted(
+            [c for c in schema if c.get('null_pct', 0) > 0],
+            key=lambda c: c['null_pct'], reverse=True
+        )
+        if not null_cols:
+            return "No columns have missing values in this dataset."
+        top = null_cols[0]
+        rest = f" Runner-up: {null_cols[1]['name']} ({null_cols[1]['null_pct']}%)." if len(null_cols) > 1 else ""
+        return f"The column with the most missing values is '{top['name']}' at {top['null_pct']}%.{rest}"
+
+    # Most skewed column
+    if re.search(r"\b(most|highest|worst|top)\b.*\bskew", q) or re.search(r"\bskew.*\b(most|highest|worst|top)\b", q):
+        skewed = [c for c in schema if c.get('skewness') is not None]
+        if not skewed:
+            return "No skewness information available for this dataset."
+        top = max(skewed, key=lambda c: abs(c['skewness']))
+        direction = "right" if top['skewness'] > 0 else "left"
+        return f"The most skewed column is '{top['name']}' with skewness {top['skewness']} ({direction}-skewed)."
 
     if re.search(r"\b(group by|by|breakdown|compare)\b", q) and re.search(
         r"\b(mean|average|median|sum|total|count|top|highest|lowest|correlation|relationship)\b", q
