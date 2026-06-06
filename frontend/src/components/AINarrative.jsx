@@ -4,7 +4,8 @@ import './AINarrative.css'
 const BASE = import.meta.env.VITE_API_URL || ''
 
 const PROVIDERS = [
-  { id:'local', name:'Local (Ollama)', needsKey:false, hint:'Private — runs on your machine', models:[] },
+  { id:'local', name:'Local (Ollama)', needsKey:false, hint:'Private — runs on your machine',
+    models:['llama3.2:3b','llama3.2:1b','llama3.1:8b','llama3.3:70b','mistral:7b','gemma2:9b','qwen2.5:7b','deepseek-r1:7b','phi4:14b'] },
   { id:'groq', name:'Groq', needsKey:true, hint:'Fast & free tier · your key',
     models:['llama-3.3-70b-versatile','llama-3.1-8b-instant','mixtral-8x7b-32768','gemma2-9b-it'] },
   { id:'openai', name:'OpenAI', needsKey:true, hint:'Your key',
@@ -86,7 +87,7 @@ export default function AINarrative({ datasetId, filename, schema = [], onClose 
   function aiBody(extra={}) {
     return {
       provider,
-      model: provider==='local' ? ollamaModel : (selectedModel||null),
+      model: provider==='local' ? (selectedModel || ollamaModel) : (selectedModel||null),
       api_key: provider==='local' ? null : apiKey,
       ...extra
     }
@@ -230,6 +231,21 @@ export default function AINarrative({ datasetId, filename, schema = [], onClose 
               <span className="nar-key-note nar-key-warn">
                 Stored in your browser only. Never saved on our servers.
               </span>
+            </div>
+          )}
+
+          {provider==='local' && (
+            <div className="nar-model-row" style={{marginTop:8}}>
+              <select className="nar-model-select"
+                value={cfg.models.includes(selectedModel) ? selectedModel : '__custom__'}
+                onChange={e => setSelectedModel(e.target.value === '__custom__' ? '' : e.target.value)}>
+                {cfg.models.map(m => <option key={m} value={m}>{m}</option>)}
+                <option value="__custom__">Custom</option>
+              </select>
+              {!cfg.models.includes(selectedModel) && (
+                <input className="nar-model-custom" placeholder="e.g. llama3.2:3b"
+                  value={selectedModel} onChange={e => setSelectedModel(e.target.value)} />
+              )}
             </div>
           )}
 
