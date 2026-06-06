@@ -26,7 +26,7 @@ Upload a CSV or Excel file and get a complete analysis, cleaning report,<br/>and
 
 <br/>
 
-![edaverse Dashboard](https://placehold.co/1280x600/0d1117/14b8a6?text=edaverse+—+EDA+Workspace&font=montserrat)
+![edaverse Dashboard](doc/Eda%20Stats.png)
 
 <br/>
 
@@ -187,19 +187,21 @@ Suggestions are grouped by category and can be applied selectively:
 
 ## Screenshots
 
-| Upload | EDA Overview |
+| Upload | EDA Stats |
 |---|---|
-| ![Upload screen](https://placehold.co/760x420/0d1117/14b8a6?text=Drag+%26+Drop+Upload&font=montserrat) | ![EDA Overview](https://placehold.co/760x420/0d1117/14b8a6?text=EDA+Overview+%26+Stats&font=montserrat) |
+| ![Drag & Drop Upload](doc/drag%20%26%20drop.png) | ![EDA Stats](doc/Eda%20Stats.png) |
 
-| Correlation Heatmap | Cleaning Report |
+| Distributions & Graphs | Correlation Heatmap |
 |---|---|
-| ![Correlations](https://placehold.co/760x420/0d1117/14b8a6?text=Correlation+Heatmap&font=montserrat) | ![Cleaning](https://placehold.co/760x420/0d1117/14b8a6?text=Cleaning+Report&font=montserrat) |
+| ![Graphs](doc/graphs.png) | ![Heatmap](doc/HeatMap.png) |
 
-| Feature Engineering | Settings & Tour |
+| Cleaning Issues | Cleaning Report |
 |---|---|
-| ![Feature Engineering](https://placehold.co/760x420/0d1117/14b8a6?text=Feature+Engineering&font=montserrat) | ![Settings](https://placehold.co/760x420/0d1117/14b8a6?text=Settings+%26+Onboarding+Tour&font=montserrat) |
+| ![Cleaning Section](doc/cleaning%20section.png) | ![Cleaning Report](doc/Cleaning%20Report.png) |
 
-> Replace these placeholder images with real screenshots by adding them to a `docs/` folder in the repo and updating the paths above.
+| Feature Engineering |
+|---|
+| ![Feature Engineering](doc/feature%20Engineering.png) |
 
 ---
 
