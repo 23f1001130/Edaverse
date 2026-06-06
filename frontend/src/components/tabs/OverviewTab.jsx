@@ -92,7 +92,7 @@ export default function OverviewTab({ data, eda }) {
               const c = n.null_pct === 0 ? 'var(--green)' : n.null_pct < 10 ? 'var(--amber)' : 'var(--red)'
               return (
                 <div key={n.column} className="mini-bar-row">
-                  <span className="mini-bar-name">{n.column}</span>
+                  <span className="mini-bar-name" title={n.column}>{n.column}</span>
                   <div className="mini-bar-track"><div className="mini-bar-fill" style={{width:`${Math.max(n.null_pct,1)}%`, background:c}} /></div>
                   <span className="mini-bar-val" style={{color:c}}>{n.null_pct}%</span>
                 </div>
@@ -161,18 +161,40 @@ export default function OverviewTab({ data, eda }) {
         <div className="panel" style={{marginTop:16}}>
           <div className="panel-title">Skewed numeric columns</div>
           <div style={{display:'flex',flexDirection:'column',gap:6}}>
-            {skewedCols.map(c => (
-              <div key={c.name} style={{display:'flex',alignItems:'center',gap:12}}>
-                <span style={{fontFamily:'var(--font-mono)',fontSize:12,color:'var(--text-secondary)',width:140,flexShrink:0}}>{c.name}</span>
-                <div style={{flex:1,height:6,background:'var(--border-subtle)',borderRadius:3,overflow:'hidden'}}>
-                  <div style={{height:'100%',width:`${Math.min(Math.abs(c.skewness)/3*100,100)}%`,background:Math.abs(c.skewness)>2?'var(--red)':'var(--amber)',borderRadius:3}} />
+            {skewedCols.map(c => {
+              const isHigh = Math.abs(c.skewness) > 2
+              const barColor = isHigh ? 'var(--red)' : 'var(--amber)'
+              const valColor = isHigh ? '#fca5a5' : 'var(--amber)'
+              return (
+                <div
+                  key={c.name}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1.4fr) 2fr 54px 78px',
+                    alignItems: 'center',
+                    gap: 12,
+                  }}
+                >
+                  <span
+                    title={c.name}
+                    style={{
+                      fontFamily: 'var(--font-mono)', fontSize: 12,
+                      color: 'var(--text-secondary)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}
+                  >{c.name}</span>
+                  <div style={{height:6, background:'var(--border-subtle)', borderRadius:3, overflow:'hidden'}}>
+                    <div style={{height:'100%', width:`${Math.min(Math.abs(c.skewness)/3*100,100)}%`, background:barColor, borderRadius:3}} />
+                  </div>
+                  <span style={{fontSize:12, fontFamily:'var(--font-mono)', textAlign:'right', color:valColor}}>
+                    {c.skewness > 0 ? '+' : ''}{c.skewness.toFixed(2)}
+                  </span>
+                  <span style={{fontSize:11, color:'var(--text-tertiary)', whiteSpace:'nowrap'}}>
+                    {c.skewness > 0 ? 'right' : 'left'}-skewed
+                  </span>
                 </div>
-                <span style={{fontSize:12,fontFamily:'var(--font-mono)',minWidth:52,textAlign:'right',color:Math.abs(c.skewness)>2?'#fca5a5':'var(--amber)'}}>
-                  {c.skewness > 0 ? '+' : ''}{c.skewness.toFixed(2)}
-                </span>
-                <span style={{fontSize:11,color:'var(--text-tertiary)'}}>{c.skewness > 0 ? 'right' : 'left'}-skewed</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
           <div style={{marginTop:8,fontSize:12,color:'var(--text-tertiary)'}}>Consider log or Box-Cox transforms in the Feature Engineering tab.</div>
         </div>

@@ -6,6 +6,8 @@ After=network.target
 User=www-data
 WorkingDirectory=/var/www/dataflow/backend
 Environment="PATH=/var/www/dataflow/backend/venv/bin"
+Environment="APP_ENV=production"
+Environment="AUTH_TRUST_UNVERIFIED_JWT=false"
 ExecStart=/var/www/dataflow/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
 Restart=always
 RestartSec=5

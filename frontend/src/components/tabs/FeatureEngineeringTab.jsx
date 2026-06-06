@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react'
+import { getAuthHeaders } from '../../services/api.js'
+import { fireToast, getSetting } from '../../services/toast.js'
 import './tabs.css'
 
 const BASE = import.meta.env.VITE_API_URL || ''
@@ -49,7 +51,8 @@ export default function FeatureEngineeringTab({ data, onDataUpdate }) {
     setSuggestions(null)
 
     const qs = target ? `?target=${encodeURIComponent(target)}` : ''
-    fetch(`${BASE}/api/datasets/${data.id}/feature-suggestions${qs}`)
+    getAuthHeaders().then(headers =>
+    fetch(`${BASE}/api/datasets/${data.id}/feature-suggestions${qs}`, { headers })
       .then(r => r.json())
       .then(d => {
         if (cancelled) return
@@ -62,6 +65,7 @@ export default function FeatureEngineeringTab({ data, onDataUpdate }) {
         setLoading(false)
       })
       .catch(() => { if (!cancelled) setLoading(false) })
+    )
 
     return () => { cancelled = true }
   }, [scanKey, target])   // scanKey + target control suggestion refresh
@@ -81,9 +85,10 @@ export default function FeatureEngineeringTab({ data, onDataUpdate }) {
   async function apply() {
     setApplying(true)
     try {
+      const authHeaders = await getAuthHeaders()
       const r = await fetch(`${BASE}/api/datasets/${data.id}/engineer`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ op_ids: [...selected] }),
       })
       setResult(await r.json())
@@ -100,15 +105,19 @@ export default function FeatureEngineeringTab({ data, onDataUpdate }) {
     try {
       // The engineered file lives at {id}_feat.parquet — we promote it by
       // copying it over the main parquet via the backend, then refreshing
+      const authHeaders = await getAuthHeaders()
       const r = await fetch(`${BASE}/api/datasets/${data.id}/use-engineered`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ op_ids: result?.applied_op_ids || [...selected] }),
       })
       const d = await r.json()
       if (d.ok) {
         if (onDataUpdate && d.dataset) onDataUpdate(d.dataset)
-        setScanKey(k => k + 1)   // re-scan suggestions for the new dataset
+        setScanKey(k => k + 1)
+        if (getSetting('notifications.features_engineered', true)) {
+          fireToast('Engineered dataset is now active', 'success')
+        }
       }
     } catch {}
     finally { setPromoting(false) }
@@ -171,9 +180,9 @@ export default function FeatureEngineeringTab({ data, onDataUpdate }) {
         </div>
       </div>
 
-      {/* Category filter */}
-      <div className="dist-toolbar" style={{ marginBottom: 16 }}>
-        <div className="dist-filters">
+      {/* Category filter — sticky so Select/Clear remain visible when scrolling */}
+      <div className="dist-toolbar feat-toolbar-sticky" style={{ marginBottom: 16 }}>
+        <div className="dist-filters" style={{ flexWrap: 'wrap', gap: '6px 6px' }}>
           <button className={`dist-filter ${catFilter === 'all' ? 'active' : ''}`} onClick={() => setCatFilter('all')}>
             All <span>{suggestions.length}</span>
           </button>
@@ -183,13 +192,13 @@ export default function FeatureEngineeringTab({ data, onDataUpdate }) {
             </button>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           <button onClick={() => toggleAll(filtered.map(s => s.id), true)}
-            style={{ fontSize: 12, background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '4px 10px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+            style={{ fontSize: 13, background: 'var(--accent-glow)', border: '1px solid var(--accent)', borderRadius: 8, padding: '6px 14px', color: 'var(--accent-light)', cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap' }}>
             Select all
           </button>
           <button onClick={() => toggleAll(filtered.map(s => s.id), false)}
-            style={{ fontSize: 12, background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '4px 10px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+            style={{ fontSize: 13, background: 'var(--bg-card)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '6px 14px', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap' }}>
             Clear all
           </button>
         </div>
@@ -244,9 +253,9 @@ export default function FeatureEngineeringTab({ data, onDataUpdate }) {
             </button>
           </div>
         ) : (
-          <div className="panel" style={{ borderColor: 'rgba(16,185,129,0.3)', background: 'var(--green-bg)' }}>
+          <div className="panel" style={{ borderColor: 'rgba(34,197,94,0.28)', background: 'var(--green-bg)' }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--green)', marginBottom: 8 }}>✓ Feature engineering complete</div>
-            <div style={{ fontSize: 13, color: '#6ee7b7', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
               {result.new_columns?.length} new columns added · {result.shape?.rows?.toLocaleString()} rows × {result.shape?.columns} columns total
             </div>
 
@@ -260,7 +269,7 @@ export default function FeatureEngineeringTab({ data, onDataUpdate }) {
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button onClick={useEngineered} disabled={promoting}
-                style={{ background: 'var(--green)', color: '#04231a', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: promoting ? 0.6 : 1 }}>
+                style={{ background: 'var(--green)', color: '#0a0e1a', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: promoting ? 0.6 : 1 }}>
                 {promoting ? 'Switching…' : '↻ Continue with engineered data'}
               </button>
               <button onClick={() => window.open(`${BASE}/api/datasets/${data.id}/download-engineered`, '_blank')}

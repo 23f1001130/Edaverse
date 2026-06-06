@@ -4,13 +4,47 @@ import Landing from './pages/Landing.jsx'
 import Workspace from './pages/Workspace.jsx'
 import AuthPage from './pages/AuthPage.jsx'
 
+const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{
+          minHeight: '100vh', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          background: 'var(--bg-base)', gap: 16,
+        }}>
+          <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+            Something went wrong. Please reload the page.
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            style={{ padding: '8px 20px', borderRadius: 6, cursor: 'pointer' }}
+          >
+            Reload
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 function SSOCallback() {
   const { handleRedirectCallback } = useClerk()
 
   useEffect(() => {
     handleRedirectCallback({
-      afterSignInUrl: '/',
-      afterSignUpUrl: '/',
+      afterSignInUrl: APP_URL,
+      afterSignUpUrl: APP_URL,
     }).catch(console.error)
   }, [])
 
@@ -36,16 +70,17 @@ export default function App() {
   const [view, setView] = useState('landing')
   const [startDemo, setStartDemo] = useState(false)
 
-  // Handle SSO callback URL
-  if (window.location.href.includes('sso-callback')) {
-    return <SSOCallback />
-  }
-
   useEffect(() => {
     if (isLoaded && isSignedIn && view === 'auth') {
       setView('workspace')
     }
   }, [isLoaded, isSignedIn])
+
+  // Handle SSO callback URL — match on pathname only to avoid false positives.
+  const _path = window.location.pathname
+  if (_path === '/sso-callback' || _path.endsWith('/sso-callback')) {
+    return <SSOCallback />
+  }
 
   if (!isLoaded) {
     return (
@@ -65,20 +100,30 @@ export default function App() {
 
   if (view === 'landing') {
     return (
-      <Landing
-        onSignIn={() => setView('auth')}
-        onGetStarted={() => {
-          if (isSignedIn) { setStartDemo(false); setView('workspace') }
-          else setView('auth')
-        }}
-        onDemo={() => { setStartDemo(true); setView('workspace') }}
-      />
+      <ErrorBoundary>
+        <Landing
+          onSignIn={() => setView('auth')}
+          onGetStarted={() => {
+            if (isSignedIn) { setStartDemo(false); setView('workspace') }
+            else setView('auth')
+          }}
+          onDemo={() => { setStartDemo(true); setView('workspace') }}
+        />
+      </ErrorBoundary>
     )
   }
 
   if (view === 'auth') {
-    return <AuthPage onSuccess={() => setView('workspace')} onBack={() => setView('landing')} />
+    return (
+      <ErrorBoundary>
+        <AuthPage onSuccess={() => setView('workspace')} onBack={() => setView('landing')} />
+      </ErrorBoundary>
+    )
   }
 
-  return <Workspace onHome={() => setView('landing')} autoDemo={startDemo} />
+  return (
+    <ErrorBoundary>
+      <Workspace onHome={() => setView('landing')} autoDemo={startDemo} />
+    </ErrorBoundary>
+  )
 }

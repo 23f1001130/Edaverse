@@ -1,21 +1,39 @@
 # Python
 __pycache__/
 *.pyc
-.env
+*.pyo
 venv/
 .venv/
+
+# Secrets — block ALL .env variants, but allow .env.example templates
+.env
+.env.*
+!.env.example
 
 # Node
 node_modules/
 dist/
-.env.local
+.next/
+.nuxt/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Deploy data
+# IDE
+.vscode/settings.json
+.idea/
+
+# Dataset storage — local runtime data, never commit
 backend/data/
-backend/data/datasets/*.json
-backend/data/datasets/*.parquet
-backend/data/datasets/*.csv
+
+# Test artefacts
+.pytest_cache/
+htmlcov/
+.coverage

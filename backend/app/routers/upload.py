@@ -3,10 +3,12 @@ from typing import Optional
 from app.services.parser import parse_file
 from app.services.store import save_dataset
 from app.services.auth import get_request_user_id
+from app.services.limiter import limiter
 
 router = APIRouter()
 
 @router.post("/upload")
+@limiter.limit("10/minute")
 async def upload_file(
     request: Request,
     file: UploadFile = File(...),

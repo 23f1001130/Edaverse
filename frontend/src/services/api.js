@@ -2,14 +2,28 @@ import axios from 'axios'
 
 const BASE = import.meta.env.VITE_API_URL || ''
 
-// Get the Clerk session token and attach it to every request
-async function getAuthHeaders() {
+// Retry GET requests up to 2 times on network errors or 5xx responses.
+axios.interceptors.response.use(null, async (error) => {
+  const config = error.config
+  if (!config || config.method !== 'get') return Promise.reject(error)
+  config._retryCount = (config._retryCount || 0) + 1
+  if (config._retryCount > 2) return Promise.reject(error)
+  const status = error.response?.status
+  if (status && status < 500) return Promise.reject(error)
+  await new Promise(r => setTimeout(r, config._retryCount * 600))
+  return axios(config)
+})
+
+export async function getAuthHeaders() {
+  const headers = {}
   try {
-    // window.Clerk is injected by @clerk/clerk-react's ClerkProvider
     const token = await window.Clerk?.session?.getToken()
-    if (token) return { Authorization: `Bearer ${token}` }
+    if (token) headers.Authorization = `Bearer ${token}`
   } catch {}
-  return {}
+  try {
+    headers['X-Request-ID'] = crypto.randomUUID()
+  } catch {}
+  return headers
 }
 
 export async function uploadFile(file, onProgress, headerRow = null) {
@@ -29,9 +43,9 @@ export async function uploadFile(file, onProgress, headerRow = null) {
   return res.data
 }
 
-export async function fetchDatasets() {
+export async function fetchDatasets({ limit = 20, offset = 0 } = {}) {
   const headers = await getAuthHeaders()
-  const res = await axios.get(`${BASE}/api/datasets`, { headers })
+  const res = await axios.get(`${BASE}/api/datasets`, { headers, params: { limit, offset } })
   return res.data
 }
 
@@ -50,5 +64,11 @@ export async function deleteDataset(id) {
 export async function loadDemo() {
   const headers = await getAuthHeaders()
   const res = await axios.post(`${BASE}/api/demo`, {}, { headers })
+  return res.data
+}
+
+export async function fetchConfig() {
+  const headers = await getAuthHeaders()
+  const res = await axios.get(`${BASE}/api/config`, { headers })
   return res.data
 }

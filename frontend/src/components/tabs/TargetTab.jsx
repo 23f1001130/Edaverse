@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
+import { getAuthHeaders } from '../../services/api.js'
 import './tabs.css'
 
 const BASE = import.meta.env.VITE_API_URL || ''
 const tooltipStyle = { background:'#121829', border:'1px solid #242d42', borderRadius:8, fontSize:12, color:'#e8edf7' }
+const GRID = '#242d42'
+const TICK = '#5f6b82'
+const C_NUM = '#3b82f6'
+const C_CAT = '#a78bfa'
 
 function scoreLabel(score) {
   if (score == null) return 'n/a'
@@ -22,11 +27,11 @@ function TargetDistribution({ analysis }) {
       <div className="panel-title">Target distribution</div>
       <ResponsiveContainer width="100%" height={240}>
         <BarChart data={data} margin={{top:8,right:12,left:-12,bottom:4}}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e2638" />
-          <XAxis dataKey={isHist ? 'range' : 'value'} tick={{fontSize:10,fill:'#5f6b82'}} axisLine={false} tickLine={false} />
-          <YAxis tick={{fontSize:11,fill:'#5f6b82'}} axisLine={false} tickLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+          <XAxis dataKey={isHist ? 'range' : 'value'} tick={{fontSize:10,fill:TICK}} axisLine={false} tickLine={false} />
+          <YAxis tick={{fontSize:11,fill:TICK}} axisLine={false} tickLine={false} />
           <Tooltip contentStyle={tooltipStyle} />
-          <Bar dataKey="count" fill={isHist ? '#3b82f6' : '#34d399'} radius={[4,4,0,0]} />
+          <Bar dataKey="count" fill={isHist ? C_NUM : C_CAT} radius={[4,4,0,0]} />
         </BarChart>
       </ResponsiveContainer>
       {isHist && dist.stats && (
@@ -91,11 +96,11 @@ function ScatterPanels({ rows, target }) {
           <div className="panel-title">{r.feature} vs {target}</div>
           <ResponsiveContainer width="100%" height={240}>
             <ScatterChart margin={{top:8,right:12,left:-12,bottom:4}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e2638" />
-              <XAxis type="number" dataKey="x" name={r.feature} tick={{fontSize:11,fill:'#5f6b82'}} axisLine={false} tickLine={false} />
-              <YAxis type="number" dataKey="y" name={target} tick={{fontSize:11,fill:'#5f6b82'}} axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+              <XAxis type="number" dataKey="x" name={r.feature} tick={{fontSize:11,fill:TICK}} axisLine={false} tickLine={false} />
+              <YAxis type="number" dataKey="y" name={target} tick={{fontSize:11,fill:TICK}} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Scatter data={r.points} fill="#3b82f6" opacity={0.7} />
+              <Scatter data={r.points} fill={C_NUM} opacity={0.7} />
             </ScatterChart>
           </ResponsiveContainer>
           <div className="target-statline">correlation {r.correlation > 0 ? '+' : ''}{r.correlation?.toFixed?.(2)}</div>
@@ -117,11 +122,11 @@ function GroupPanels({ rows, target }) {
             <div className="panel-title">{r.feature} grouped by {target}</div>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={r.groups} margin={{top:8,right:12,left:-12,bottom:4}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e2638" />
-                <XAxis dataKey={key} tick={{fontSize:10,fill:'#5f6b82'}} axisLine={false} tickLine={false} />
-                <YAxis tick={{fontSize:11,fill:'#5f6b82'}} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+                <XAxis dataKey={key} tick={{fontSize:10,fill:TICK}} axisLine={false} tickLine={false} />
+                <YAxis tick={{fontSize:11,fill:TICK}} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="mean" fill="#34d399" radius={[4,4,0,0]} />
+                <Bar dataKey="mean" fill={C_CAT} radius={[4,4,0,0]} />
               </BarChart>
             </ResponsiveContainer>
             <div className="target-statline">score {r.score?.toFixed?.(2) ?? 'n/a'}</div>
@@ -175,18 +180,20 @@ export default function TargetTab({ data }) {
     setError(null)
     setAnalysis(null)
     setImportance(null)
-    fetch(`${BASE}/api/datasets/${data.id}/target-analysis?target=${encodeURIComponent(target)}`)
-      .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(new Error(d.detail || 'Target analysis failed'))))
-      .then(d => { if (!cancelled) setAnalysis(d) })
-      .catch(e => { if (!cancelled) setError(e.message) })
-      .finally(() => { if (!cancelled) setLoading(false) })
+    getAuthHeaders().then(headers => {
+      fetch(`${BASE}/api/datasets/${data.id}/target-analysis?target=${encodeURIComponent(target)}`, { headers })
+        .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(new Error(d.detail || 'Target analysis failed'))))
+        .then(d => { if (!cancelled) setAnalysis(d) })
+        .catch(e => { if (!cancelled) setError(e.message) })
+        .finally(() => { if (!cancelled) setLoading(false) })
 
-    setImportanceLoading(true)
-    fetch(`${BASE}/api/datasets/${data.id}/model-importance?target=${encodeURIComponent(target)}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (!cancelled) setImportance(d) })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setImportanceLoading(false) })
+      setImportanceLoading(true)
+      fetch(`${BASE}/api/datasets/${data.id}/model-importance?target=${encodeURIComponent(target)}`, { headers })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (!cancelled) setImportance(d) })
+        .catch(() => {})
+        .finally(() => { if (!cancelled) setImportanceLoading(false) })
+    })
     return () => { cancelled = true }
   }, [target, data.id])
 

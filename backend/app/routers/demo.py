@@ -1,11 +1,13 @@
-import io
 import numpy as np
 import pandas as pd
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from app.services.auth import get_request_user_id
 from app.services.parser import parse_file
-from app.services.store import save_dataset
+from app.services.store import save_dataset, list_datasets, get_dataset
 
 router = APIRouter()
+
+DEMO_FILENAME = "customer_churn_demo.csv"
 
 
 def _make_demo_csv() -> bytes:
@@ -20,7 +22,6 @@ def _make_demo_csv() -> bytes:
     support = rng.poisson(2, n)
     satisfaction = rng.normal(7, 2, n).clip(1, 10).round(1)
 
-    # churn correlated with low tenure, high support calls, low satisfaction
     churn_prob = (
         0.4 * (tenure < 12) + 0.3 * (support > 3) +
         0.3 * (satisfaction < 5) + rng.uniform(0, 0.2, n)
@@ -41,7 +42,6 @@ def _make_demo_csv() -> bytes:
         "signup_date": pd.to_datetime("2020-01-01") + pd.to_timedelta(rng.integers(0, 1460, n), unit="D"),
     })
 
-    # introduce some realistic nulls
     df.loc[rng.choice(n, int(n*0.024), replace=False), "age"] = np.nan
     df.loc[rng.choice(n, int(n*0.067), replace=False), "satisfaction_score"] = np.nan
 
@@ -49,9 +49,23 @@ def _make_demo_csv() -> bytes:
 
 
 @router.post("/demo")
-async def load_demo():
+async def load_demo(request: Request):
+    owner_id = get_request_user_id(request)
+
+    # For signed-in users: reuse an existing demo dataset so we don't create duplicates.
+    if owner_id:
+        existing = list_datasets(owner_id, include_demo=True)
+        for summary in existing:
+            if summary.get("filename") == DEMO_FILENAME and summary.get("is_demo"):
+                full = get_dataset(summary["id"], owner_id)
+                if full:
+                    return full
+
     contents = _make_demo_csv()
-    result = parse_file(filename="customer_churn_demo.csv", contents=contents)
+    result = parse_file(filename=DEMO_FILENAME, contents=contents)
     if result.get("success"):
-        result = save_dataset(result)
+        # Mark as demo so it is excluded from the History panel listing
+        # but still saved so the EDA pipeline can reference it by ID.
+        result["is_demo"] = True
+        result = save_dataset(result, owner_id=owner_id)
     return result

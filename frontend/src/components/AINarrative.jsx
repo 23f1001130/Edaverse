@@ -32,7 +32,7 @@ function humanizeFetchError(err) {
 export default function AINarrative({ datasetId, filename, schema = [], onClose }) {
   const [status, setStatus] = useState(null)
   const [provider, setProv] = useState('local')
-  const [prevProvider, setPrevProvider] = useState('local')
+  const [prevProvider, setPrevProvider] = useState(null)
   const [apiKey, setApiKey] = useState('')
   const [selectedModel, setSelectedModel] = useState('')
   const [insight, setInsight] = useState(null)
@@ -118,7 +118,10 @@ export default function AINarrative({ datasetId, filename, schema = [], onClose 
     if (!text.trim() || chatting || !datasetId) return
 
     const reqProvider = provider
-    const switchedProvider = reqProvider !== prevProvider && (sessions[reqProvider]?.messages||[]).length === 0
+    const switchedProvider = prevProvider !== null &&
+      reqProvider !== prevProvider &&
+      (sessions[reqProvider]?.messages||[]).length === 0 &&
+      (sessions[prevProvider]?.messages||[]).length > 0
     const isFirstMsg = sessions[reqProvider]?.isFirst !== false
 
     const writeTo = (msgs) => setSessions(prev => ({
@@ -178,8 +181,8 @@ export default function AINarrative({ datasetId, filename, schema = [], onClose 
       <div className="nar-overlay" onClick={onClose} />
       <div className="nar-panel">
         <div className="nar-header">
-          <div className="nar-title"><span>✦</span> What your data is telling you</div>
-          <button className="nar-close" onClick={onClose}>×</button>
+          <div className="nar-title"><span>AI</span> What your data is telling you</div>
+          <button className="nar-close" onClick={onClose}>x</button>
         </div>
 
         {/* Provider picker */}
@@ -217,14 +220,16 @@ export default function AINarrative({ datasetId, filename, schema = [], onClose 
                   value={cfg.models.includes(selectedModel)?selectedModel:'__custom__'}
                   onChange={e=>setSelectedModel(e.target.value==='__custom__'?'':e.target.value)}>
                   {cfg.models.map(m=><option key={m} value={m}>{m}</option>)}
-                  <option value="__custom__">Custom…</option>
+              <option value="__custom__">Custom</option>
                 </select>
                 {!cfg.models.includes(selectedModel) && (
                   <input className="nar-model-custom" placeholder="Enter model name"
                     value={selectedModel} onChange={e=>setSelectedModel(e.target.value)} />
                 )}
               </div>
-              <span className="nar-key-note">Stored only in your browser. Never sent to our server beyond the AI request.</span>
+              <span className="nar-key-note nar-key-warn">
+                Your API key is stored in this browser only and sent to the backend only when making AI requests. Do not use on shared computers.
+              </span>
             </div>
           )}
 
@@ -236,7 +241,7 @@ export default function AINarrative({ datasetId, filename, schema = [], onClose 
           )}
           {provider==='local' && status?.running && (
             <div className="nar-key-note" style={{marginTop:4,color:'var(--green)'}}>
-              ● {status.active_model} running locally
+              {status.active_model} running locally
             </div>
           )}
         </div>
@@ -244,10 +249,10 @@ export default function AINarrative({ datasetId, filename, schema = [], onClose 
         <div className="nar-body">
           {!insight && !insightLoading && (
             <button className="nar-generate" onClick={loadInsight} disabled={!ready}>
-              ✦ Generate insight report
+              Generate insight report
             </button>
           )}
-          {insightLoading && <div className="nar-loading"><div className="up-spinner"/>Analysing your dataset…</div>}
+          {insightLoading && <div className="nar-loading"><div className="up-spinner"/>Analysing your dataset</div>}
           {insight?.error && (
             <div className="nar-msg assistant error" style={{marginBottom:14}}>{insight.error}</div>
           )}
@@ -287,12 +292,12 @@ export default function AINarrative({ datasetId, filename, schema = [], onClose 
 
         <div className="nar-input-wrap">
           <input className="nar-input"
-            placeholder={ready ? `Ask about ${filename}…` : 'Ask factual questions, or configure a provider for deeper analysis'}
+            placeholder={ready ? `Ask about ${filename}` : 'Ask factual questions, or configure a provider for deeper analysis'}
             value={input} onChange={e=>setInput(e.target.value)}
             onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();send(input)}}}
             disabled={chatting||!datasetId}
           />
-          <button className="nar-send" onClick={()=>send(input)} disabled={!input.trim()||chatting||!datasetId}>↑</button>
+          <button className="nar-send" onClick={()=>send(input)} disabled={!input.trim()||chatting||!datasetId}>Go</button>
         </div>
       </div>
     </>

@@ -1,4 +1,5 @@
 import math
+import logging
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -6,12 +7,32 @@ from app.services.store import ensure_dataset_file
 from app.services.object_storage import upload_dataset_artifact
 
 DATA_DIR = Path(__file__).parent.parent.parent / "data" / "datasets"
+logger = logging.getLogger(__name__)
 
 STRING_NULLS = {"null", "none", "na", "n/a", "nan", "nil", "missing", "-", "--", "?", "unknown", ""}
 
 
 def _finite_numeric(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+
+
+def _iqr_fences(series: pd.Series) -> tuple[float, float] | None:
+    """Return stable IQR fences, recomputing once after removing extremes."""
+    numeric = _finite_numeric(series)
+    if len(numeric) < 4:
+        return None
+    q1, q3 = numeric.quantile(0.25), numeric.quantile(0.75)
+    iqr = q3 - q1
+    if iqr <= 0:
+        return None
+    lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+    core = numeric[(numeric >= lower) & (numeric <= upper)]
+    if len(core) >= 4 and len(core) < len(numeric):
+        q1, q3 = core.quantile(0.25), core.quantile(0.75)
+        iqr = q3 - q1
+        if iqr > 0:
+            lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+    return float(lower), float(upper)
 
 
 def _knn_fill_numeric(df: pd.DataFrame, target_col: str, k: int = 5) -> tuple[pd.Series, int]:
@@ -69,7 +90,8 @@ def _save_df(dataset_id: str, df: pd.DataFrame) -> None:
         path = DATA_DIR / f"{dataset_id}.parquet"
         df.to_parquet(path, index=False)
         upload_dataset_artifact(dataset_id, path)
-    except Exception:
+    except (ImportError, OSError, ValueError, TypeError, RuntimeError) as exc:
+        logger.warning("Parquet clean save failed, trying CSV: %s: %s", type(exc).__name__, exc)
         path = DATA_DIR / f"{dataset_id}.csv"
         df.to_csv(path, index=False)
         upload_dataset_artifact(dataset_id, path)
@@ -188,11 +210,9 @@ def suggest_fixes(df: pd.DataFrame, schema: list, ignored_fix_ids: list | None =
         if ctype in ("integer", "float"):
             numeric = _finite_numeric(series)
             if len(numeric) >= 10:
-                q1, q3 = numeric.quantile(0.25), numeric.quantile(0.75)
-                iqr = q3 - q1
-                if iqr > 0:
-                    lower = q1 - 1.5 * iqr
-                    upper = q3 + 1.5 * iqr
+                fences = _iqr_fences(series)
+                if fences:
+                    lower, upper = fences
                     n_out = int(((numeric < lower) | (numeric > upper)).sum())
                     if n_out > 0:
                         pct_out = round(n_out / len(numeric) * 100, 1)
@@ -305,11 +325,9 @@ def apply_fixes(df: pd.DataFrame, fix_ids: list, schema: list) -> tuple[pd.DataF
 
         elif action == "cap_outliers":
             numeric = pd.to_numeric(df[col], errors="coerce").replace([np.inf, -np.inf], np.nan)
-            q1, q3 = numeric.quantile(0.25), numeric.quantile(0.75)
-            iqr = q3 - q1
-            if iqr > 0:
-                lower = q1 - 1.5 * iqr
-                upper = q3 + 1.5 * iqr
+            fences = _iqr_fences(numeric)
+            if fences:
+                lower, upper = fences
                 capped = int(((numeric < lower) | (numeric > upper)).sum())
                 df[col] = numeric.clip(lower=lower, upper=upper)
                 log.append(f'Capped {capped} outliers in "{col}" to [{round(lower, 2)}, {round(upper, 2)}]')
@@ -330,7 +348,8 @@ def clean_dataset(dataset_id: str, fix_ids: list, schema: list) -> dict:
     try:
         cleaned.to_parquet(clean_path, index=False)
         upload_dataset_artifact(dataset_id, clean_path)
-    except Exception:
+    except (ImportError, OSError, ValueError, TypeError, RuntimeError) as exc:
+        logger.warning("Parquet clean artifact failed, trying CSV: %s: %s", type(exc).__name__, exc)
         clean_path = DATA_DIR / f"{dataset_id}_clean.csv"
         cleaned.to_csv(clean_path, index=False)
         upload_dataset_artifact(dataset_id, clean_path)

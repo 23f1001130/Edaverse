@@ -41,8 +41,8 @@ systemctl status dataflow
 nginx -t
 systemctl status nginx
 
-# Visit your droplet's IP in browser
-http://your_droplet_ip
+# Visit your configured domain in browser
+https://your-domain.com
 ```
 
 ---
@@ -54,7 +54,7 @@ Once initial setup is done, use the deploy script for future updates:
 
 ```bash
 ssh root@your_droplet_ip
-cd /var/www/dataflow && git pull && cd frontend && npm install --legacy-peer-deps && VITE_API_URL="" npm run build && cp -r dist/* /var/www/html/dataflow/ && systemctl restart dataflow
+cd /var/www/dataflow && git pull && cd frontend && npm install --legacy-peer-deps && VITE_API_URL="" VITE_APP_URL="https://your-domain.com" npm run build && cp -r dist/* /var/www/html/dataflow/ && systemctl restart dataflow
 ```
 
 Or run the deploy script:
@@ -98,15 +98,30 @@ Or run the deploy script:
 
 ## Environment Variables
 
+Frontend env vars are used at build time:
+
+```bash
+cd /var/www/dataflow/frontend
+VITE_API_URL="" VITE_APP_URL="https://your-domain.com" npm run build
+```
+
+Set `VITE_APP_URL` to your real production domain before building. Also add the same domain in the Clerk dashboard under allowed origins/redirect URLs and email link settings. If Clerk only knows the droplet IP, verification emails can show the IP address.
+
 Backend env vars can be set in `/etc/systemd/system/dataflow.service`:
 
 ```ini
 [Service]
 Environment="OLLAMA_URL=http://localhost:11434"
-Environment="DEBUG=false"
+Environment="APP_ENV=production"
+Environment="AUTH_TRUST_UNVERIFIED_JWT=false"
+Environment="CLERK_ISSUER_URL=https://your-clerk-issuer.clerk.accounts.dev"
+# Only needed when the frontend is hosted on a different origin:
+Environment="CORS_ALLOWED_ORIGINS=https://your-domain.com"
 ```
 
 Then restart: `systemctl restart dataflow`
+
+For production auth, set either `CLERK_ISSUER_URL` or `CLERK_JWKS_URL` so the API verifies Clerk JWT signatures. Leave `TRUST_PROXY_AUTH_HEADERS=false` unless a trusted reverse proxy is injecting user identity headers.
 
 ---
 

@@ -1,9 +1,16 @@
 import json
 import uuid
 import os
+import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from app.services.object_storage import upload_dataset_artifact, delete_dataset_artifacts, download_dataset_artifact
+
+try:
+    from pymongo.errors import PyMongoError
+except ImportError:
+    class PyMongoError(Exception):
+        pass
 
 DATA_DIR = Path(__file__).parent.parent.parent / "data"
 DATASETS_DIR = DATA_DIR / "datasets"
@@ -11,6 +18,7 @@ DATASETS_DIR.mkdir(parents=True, exist_ok=True)
 _UNSET = object()
 _COLLECTION = None
 _MONGO_CHECKED = False
+logger = logging.getLogger(__name__)
 
 
 def _meta_path(dataset_id: str) -> Path:
@@ -51,7 +59,8 @@ def _mongo_collection():
         _COLLECTION = client[db_name][collection_name]
         _COLLECTION.create_index([("owner_id", 1), ("saved_at", -1)])
         _COLLECTION.create_index("expires_at")
-    except Exception:
+    except (ImportError, OSError, PyMongoError) as exc:
+        logger.warning("MongoDB unavailable: %s: %s", type(exc).__name__, exc)
         _COLLECTION = None
     return _COLLECTION
 
@@ -72,7 +81,8 @@ def _mongo_doc(record: dict) -> dict:
 def _record_from_mongo(doc: dict) -> dict | None:
     try:
         return json.loads(doc.get("record_json") or "{}")
-    except Exception:
+    except (json.JSONDecodeError, TypeError) as exc:
+        logger.warning("MongoDB record decode failed: %s: %s", type(exc).__name__, exc)
         return None
 
 
@@ -92,15 +102,16 @@ def save_dataset_record(record: dict) -> dict:
     if collection is not None:
         try:
             collection.replace_one({"_id": record["id"]}, _mongo_doc(record), upsert=True)
-        except Exception:
-            pass
+        except (PyMongoError, TypeError, ValueError) as exc:
+            logger.warning("MongoDB record save failed: %s: %s", type(exc).__name__, exc)
     return record
 
 
 def _anonymous_ttl_hours() -> int:
     try:
         return max(int(os.getenv("ANONYMOUS_DATASET_TTL_HOURS", "48")), 1)
-    except Exception:
+    except (TypeError, ValueError) as exc:
+        logger.warning("Invalid ANONYMOUS_DATASET_TTL_HOURS: %s: %s", type(exc).__name__, exc)
         return 48
 
 
@@ -109,7 +120,8 @@ def _parse_dt(value: str | None):
         return None
     try:
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except Exception:
+    except (TypeError, ValueError) as exc:
+        logger.warning("Invalid datetime value %r: %s: %s", value, type(exc).__name__, exc)
         return None
 
 
@@ -136,7 +148,8 @@ def save_dataset(parse_result: dict, owner_id: str | None = None) -> dict:
             storage["artifacts"].append({"kind": "active", "format": "parquet", "local": parquet.name, "r2_key": key})
             if key:
                 storage["backend"] = "r2+local-cache"
-        except Exception:
+        except (ImportError, OSError, ValueError, TypeError, RuntimeError) as exc:
+            logger.warning("Parquet dataset save failed, trying CSV: %s: %s", type(exc).__name__, exc)
             # fallback: try saving as CSV if parquet fails
             try:
                 csv_path = DATASETS_DIR / f"{dataset_id}.csv"
@@ -145,8 +158,14 @@ def save_dataset(parse_result: dict, owner_id: str | None = None) -> dict:
                 storage["artifacts"].append({"kind": "active", "format": "csv", "local": csv_path.name, "r2_key": key})
                 if key:
                     storage["backend"] = "r2+local-cache"
-            except Exception:
-                pass
+            except (OSError, ValueError, TypeError, RuntimeError) as csv_exc:
+                logger.error(
+                    "Dataset file save failed — both parquet and CSV writes failed: %s: %s",
+                    type(csv_exc).__name__, csv_exc,
+                )
+                raise RuntimeError(
+                    "Failed to persist dataset — both parquet and CSV writes failed"
+                ) from csv_exc
 
     record = {
         "id": dataset_id,
@@ -155,6 +174,7 @@ def save_dataset(parse_result: dict, owner_id: str | None = None) -> dict:
         "access": "user" if owner_id else "anonymous",
         "expires_at": expires_at,
         "storage": storage,
+        "operations_log": [],
         **parse_result,
     }
 
@@ -174,14 +194,15 @@ def cleanup_expired_datasets(now: datetime | None = None) -> int:
                 if data:
                     records.append(data)
                     seen.add(data["id"])
-        except Exception:
-            pass
+        except (PyMongoError, json.JSONDecodeError, TypeError, KeyError) as exc:
+            logger.warning("MongoDB cleanup scan failed: %s: %s", type(exc).__name__, exc)
     for path in DATASETS_DIR.glob("*.json"):
         try:
             data = _read_local_record(path.stem)
             if data and data["id"] not in seen:
                 records.append(data)
-        except Exception:
+        except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Local cleanup scan skipped %s: %s: %s", path, type(exc).__name__, exc)
             continue
     for data in records:
         try:
@@ -189,14 +210,36 @@ def cleanup_expired_datasets(now: datetime | None = None) -> int:
             if data.get("access") == "anonymous" and expires and expires <= now:
                 if delete_dataset(data["id"]):
                     deleted += 1
-        except Exception:
+        except (OSError, KeyError, TypeError, ValueError) as exc:
+            logger.warning("Expired dataset cleanup skipped %s: %s: %s", data.get("id"), type(exc).__name__, exc)
             continue
     return deleted
 
 
-def list_datasets(user_id: str | None = None) -> list[dict]:
+def append_operation_log(dataset_id: str, entry: dict) -> None:
+    """Append a timestamped entry to the dataset's operations_log list."""
+    data = get_dataset(dataset_id)
+    if not data:
+        return
+    log = data.setdefault("operations_log", [])
+    log.append(entry)
+    save_dataset_record(data)
+
+
+def storage_info() -> dict:
+    """Return storage backend info for the /health endpoint."""
+    count = sum(1 for _ in DATASETS_DIR.glob("*.json"))
+    backend = "local"
+    if _mongo_collection() is not None:
+        backend = "mongodb+local"
+    return {"storage": backend, "datasets_count": count}
+
+
+def list_datasets(user_id: str | None = None, include_demo: bool = False,
+                  limit: int | None = None, offset: int = 0) -> list[dict]:
     cleanup_expired_datasets()
     records = []
+    mongo_ok = False
     collection = _mongo_collection()
     if collection is not None:
         try:
@@ -205,20 +248,26 @@ def list_datasets(user_id: str | None = None) -> list[dict]:
                 data = _record_from_mongo(doc)
                 if data:
                     records.append(data)
-        except Exception:
+            mongo_ok = True
+        except (PyMongoError, json.JSONDecodeError, TypeError) as exc:
+            logger.warning("MongoDB dataset list failed: %s: %s", type(exc).__name__, exc)
             records = []
-    else:
+    if not mongo_ok:
         for path in sorted(DATASETS_DIR.glob("*.json"), key=os.path.getmtime, reverse=True):
             try:
                 data = _read_local_record(path.stem)
-                if data:
+                if data and _owned_by(data, user_id):
                     records.append(data)
-            except Exception:
+            except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+                logger.warning("Local dataset list skipped %s: %s: %s", path, type(exc).__name__, exc)
                 continue
     summaries = []
     for data in records:
         try:
             if not _owned_by(data, user_id):
+                continue
+            # Exclude demo datasets from the history list unless explicitly requested
+            if data.get("is_demo") and not include_demo:
                 continue
             summaries.append({
                 "id": data["id"],
@@ -227,12 +276,18 @@ def list_datasets(user_id: str | None = None) -> list[dict]:
                 "owner_id": data.get("owner_id"),
                 "access": data.get("access", "anonymous"),
                 "expires_at": data.get("expires_at"),
+                "is_demo": data.get("is_demo", False),
                 "shape": data.get("shape"),
                 "encoding": data.get("encoding"),
                 "warnings": data.get("warnings", []),
             })
-        except Exception:
+        except (KeyError, TypeError, ValueError) as exc:
+            logger.warning("Dataset summary skipped: %s: %s", type(exc).__name__, exc)
             continue
+    if offset:
+        summaries = summaries[offset:]
+    if limit is not None:
+        summaries = summaries[:limit]
     return summaries
 
 
@@ -243,7 +298,8 @@ def get_dataset(dataset_id: str, user_id: str | None | object = _UNSET) -> dict 
         try:
             doc = collection.find_one({"_id": dataset_id})
             data = _record_from_mongo(doc) if doc else None
-        except Exception:
+        except (PyMongoError, json.JSONDecodeError, TypeError) as exc:
+            logger.warning("MongoDB dataset lookup failed: %s: %s", type(exc).__name__, exc)
             data = None
     if data is None:
         data = _read_local_record(dataset_id)
@@ -274,8 +330,8 @@ def delete_dataset(dataset_id: str, user_id: str | None = None) -> bool:
     if collection is not None:
         try:
             collection.delete_one({"_id": dataset_id})
-        except Exception:
-            pass
+        except (PyMongoError, TypeError, ValueError) as exc:
+            logger.warning("MongoDB dataset delete failed: %s: %s", type(exc).__name__, exc)
     delete_dataset_artifacts(dataset_id)
     return True
 

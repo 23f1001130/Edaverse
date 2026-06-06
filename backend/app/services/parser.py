@@ -1,6 +1,7 @@
 import io
 import csv
 import json
+import logging
 from pathlib import Path
 import chardet
 import pandas as pd
@@ -15,6 +16,8 @@ SAMPLE_ROWS = 5
 SMALL_FILE_THRESHOLD = 50 * 1024 * 1024  # 50MB — below this, load fully
 CHUNK_SIZE = 10_000  # rows per chunk for large files
 SAMPLE_SIZE = 10_000  # rows to sample for schema inference on large files
+TEXT_EXTENSIONS = ("csv", "tsv", "txt", "", "json")
+logger = logging.getLogger(__name__)
 
 
 def _finite_numeric(series: pd.Series) -> pd.Series:
@@ -46,7 +49,7 @@ def _compute_stats_chunked(filepath_or_buffer, delimiter: str, encoding: str, sc
                     s["max"] = cmax if s["max"] is None else max(s["max"], cmax)
                     s["sum"] += float(numeric.sum())
                     s["count"] += len(numeric)
-    except Exception:
+    except (pd.errors.ParserError, OSError, UnicodeDecodeError, ValueError, KeyError, TypeError):
         pass
     return stats
 
@@ -105,7 +108,7 @@ def infer_column_type(series: pd.Series) -> str:
             parsed = pd.to_datetime(sample, errors="coerce", format="mixed")
             if parsed.notna().sum() / len(sample) > 0.8:
                 return "datetime"
-        except Exception:
+        except (TypeError, ValueError):
             pass
 
         # Try boolean
@@ -113,7 +116,7 @@ def infer_column_type(series: pd.Series) -> str:
             bool_vals = {"true", "false", "yes", "no", "1", "0", "t", "f"}
             if set(sample.astype(str).str.lower().unique()).issubset(bool_vals):
                 return "boolean"
-        except Exception:
+        except (TypeError, AttributeError):
             pass
 
         # Check cardinality — low = categorical
@@ -155,7 +158,7 @@ def build_column_schema(df: pd.DataFrame) -> list[dict]:
                     if f != f or f == float('inf') or f == float('-inf'):
                         return None
                     return f
-                except Exception:
+                except (TypeError, ValueError, OverflowError):
                     return None
             numeric = _finite_numeric(non_null)
             if len(numeric) == 0:
@@ -181,7 +184,7 @@ def build_column_schema(df: pd.DataFrame) -> list[dict]:
                     col_info["freq"] = int(vc.iloc[0])
                     col_info["freq_pct"] = round(vc.iloc[0] / len(nn) * 100, 1)
                     col_info["top_values"] = [str(v) for v in vc.head(5).index.tolist()]
-            except Exception:
+            except (TypeError, KeyError, ValueError):
                 pass
 
         schema.append(col_info)
@@ -203,7 +206,7 @@ def get_raw_rows(contents: bytes, ext: str, encoding: str, n: int = 8) -> list:
             cells = ["" if pd.isna(v) else str(v) for v in raw.iloc[i].tolist()]
             rows.append({"index": i, "cells": cells[:12]})
         return rows
-    except Exception:
+    except (pd.errors.ParserError, OSError, ValueError, UnicodeDecodeError, TypeError):
         return []
 
 
@@ -274,7 +277,7 @@ def _legacy_detect(df_raw: pd.DataFrame, max_scan: int = 5) -> int | None:
         # header-like: mostly filled, mostly unique, mostly strings
         try:
             unique = row.dropna().astype(str).nunique()
-        except Exception:
+        except (TypeError, ValueError):
             unique = 0
         str_count = sum(1 for v in row if isinstance(v, str))
         score = non_null + unique + str_count
@@ -305,7 +308,8 @@ def parse_csv(contents: bytes, encoding: str, sample_only: bool = False) -> tupl
             low_memory=False,
             nrows=nrows,
         )
-    except Exception as e:
+    except (pd.errors.ParserError, UnicodeDecodeError, ValueError, TypeError) as e:
+        logger.warning("CSV parse fallback: %s: %s", type(e).__name__, e)
         warnings.append(f"Parse error: {str(e)}")
         df = pd.read_csv(io.StringIO(text), sep=delimiter, on_bad_lines="skip", nrows=nrows)
 
@@ -324,11 +328,23 @@ def parse_excel(contents: bytes) -> tuple[pd.DataFrame, list[str]]:
     warnings = []
     try:
         df = pd.read_excel(io.BytesIO(contents), engine="openpyxl")
-    except Exception:
+    except (ImportError, ValueError, OSError) as exc:
+        logger.warning("OpenPyXL parse failed, trying xlrd: %s: %s", type(exc).__name__, exc)
         try:
             df = pd.read_excel(io.BytesIO(contents), engine="xlrd")
-        except Exception as e:
+        except (ImportError, ValueError, OSError) as e:
+            logger.warning("Excel parse failed: %s: %s", type(e).__name__, e)
             raise ValueError(f"Could not parse Excel file: {e}")
+    return df, warnings
+
+
+def parse_parquet(contents: bytes) -> tuple[pd.DataFrame, list[str]]:
+    warnings = []
+    try:
+        df = pd.read_parquet(io.BytesIO(contents))
+    except (ImportError, ValueError, OSError) as e:
+        logger.warning("Parquet parse failed: %s: %s", type(e).__name__, e)
+        raise ValueError(f"Could not parse Parquet file: {e}")
     return df, warnings
 
 
@@ -365,7 +381,8 @@ def parse_json(contents: bytes, encoding: str) -> tuple[pd.DataFrame, list[str]]
             records = [json.loads(l) for l in lines]
             df = pd.DataFrame(records)
             warnings.append("Parsed as JSON lines (newline-delimited JSON)")
-        except Exception as e:
+        except (json.JSONDecodeError, TypeError, ValueError) as e:
+            logger.warning("JSON-lines parse failed: %s: %s", type(e).__name__, e)
             raise ValueError(f"Could not parse JSON: {e}")
 
     # Flatten nested dicts into dot-notation columns (e.g. rgb.r, rgb.g, rgb.b)
@@ -376,7 +393,7 @@ def parse_json(contents: bytes, encoding: str) -> tuple[pd.DataFrame, list[str]]
             expanded.columns = [f"{col}.{c}" for c in expanded.columns]
             df = df.drop(columns=[col]).join(expanded)
             warnings.append(f'Flattened nested object column "{col}" -> {list(expanded.columns)}')
-        except Exception:
+        except (KeyError, TypeError, ValueError):
             pass  # leave as-is if flattening fails
 
     return df, warnings
@@ -386,11 +403,12 @@ def parse_file(filename: str, contents: bytes, header_row: int | None = None) ->
     warnings: list[str] = []
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
 
-    # Encoding detection
-    enc_info = detect_encoding(contents)
+    # Encoding detection only matters for text-backed formats. Binary formats get
+    # a placeholder so the response shape remains stable.
+    enc_info = detect_encoding(contents) if ext in TEXT_EXTENSIONS else {"encoding": None, "confidence": 1.0}
     encoding = enc_info["encoding"]
 
-    if enc_info["confidence"] < 0.7:
+    if encoding and enc_info["confidence"] < 0.7:
         warnings.append(
             f"Low encoding confidence ({enc_info['confidence']}). "
             f"Detected as {encoding} — may have character errors."
@@ -408,10 +426,18 @@ def parse_file(filename: str, contents: bytes, header_row: int | None = None) ->
                 df, parse_warnings = parse_excel(contents)
         elif ext == "json":
             df, parse_warnings = parse_json(contents, encoding)
+        elif ext == "parquet":
+            if header_row is not None:
+                warnings.append("Header row selection is ignored for Parquet files")
+            df, parse_warnings = parse_parquet(contents)
         elif ext in ("csv", "tsv", "txt", ""):
             if header_row is not None:
                 text = contents.decode(encoding, errors="replace")
-                df = pd.read_csv(io.StringIO(text), header=header_row, on_bad_lines="skip")
+                try:
+                    delimiter_used = csv.Sniffer().sniff(text[:4096]).delimiter
+                except csv.Error:
+                    delimiter_used = "\t" if ext == "tsv" else ","
+                df = pd.read_csv(io.StringIO(text), sep=delimiter_used, header=header_row, on_bad_lines="skip")
                 parse_warnings = [f"Re-parsed using row {header_row} as header"]
             elif is_large:
                 df, parse_warnings, delimiter_used = parse_csv(contents, encoding, sample_only=True)
@@ -423,7 +449,8 @@ def parse_file(filename: str, contents: bytes, header_row: int | None = None) ->
                 df, parse_warnings, delimiter_used = parse_csv(contents, encoding, sample_only=True)
             else:
                 df, parse_warnings = parse_csv(contents, encoding)
-    except Exception as e:
+    except (pd.errors.ParserError, OSError, ValueError, UnicodeDecodeError, TypeError, KeyError, ImportError) as e:
+        logger.warning("File parse failed for %s: %s: %s", filename, type(e).__name__, e)
         return {
             "success": False,
             "filename": filename,
@@ -433,11 +460,13 @@ def parse_file(filename: str, contents: bytes, header_row: int | None = None) ->
 
     warnings.extend(parse_warnings)
 
+    # Build schema before any full-file patching. Large CSVs are sampled for
+    # schema inference, then patched with chunked stats from the complete file.
+    schema = build_column_schema(df)
+
     # For large CSVs, recompute accurate null/min/max/mean over the full file
     if is_large and ext in ("csv", "tsv", "txt", ""):
         try:
-            text_buffer = io.StringIO(contents.decode(encoding, errors="replace"))
-            numeric_cols = [c["name"] for c in schema if c["type"] in ("integer", "float")]
             all_cols = [c["name"] for c in schema]
             chunked_stats = _compute_stats_chunked(
                 io.StringIO(contents.decode(encoding, errors="replace")),
@@ -446,7 +475,8 @@ def parse_file(filename: str, contents: bytes, header_row: int | None = None) ->
             schema = _patch_schema_with_chunked_stats(schema, chunked_stats)
             # Get true row count from chunked stats
             true_rows = max(s["total"] for s in chunked_stats.values()) if chunked_stats else len(df)
-        except Exception:
+        except (pd.errors.ParserError, OSError, ValueError, UnicodeDecodeError, TypeError, KeyError):
+            logger.warning("Large-file chunked stats failed for %s", filename)
             true_rows = len(df)
     else:
         true_rows = len(df)
@@ -466,11 +496,8 @@ def parse_file(filename: str, contents: bytes, header_row: int | None = None) ->
                     "preview": preview,
                     "message": f"Row 1 may not be the real header. Row {detected} looks more like column names.",
                 }
-        except Exception:
-            pass
-
-    # Build schema
-    schema = build_column_schema(df)
+        except (pd.errors.ParserError, OSError, ValueError, UnicodeDecodeError, TypeError, KeyError) as exc:
+            logger.warning("Header detection failed for %s: %s: %s", filename, type(exc).__name__, exc)
 
     # Sample rows — convert to JSON-safe types
     sample = df.head(SAMPLE_ROWS).copy()
@@ -491,6 +518,8 @@ def parse_file(filename: str, contents: bytes, header_row: int | None = None) ->
     result = {
         "success": True,
         "filename": filename,
+        "file_extension": ext,
+        "header_row": header_row,
         "encoding": enc_info,
         "shape": {"rows": true_rows, "columns": len(df.columns)},
         "schema": schema,

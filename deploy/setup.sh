@@ -37,7 +37,11 @@ chown -R www-data:www-data data
 # Build frontend
 cd /var/www/dataflow/frontend
 npm install --legacy-peer-deps
-VITE_API_URL="" npm run build
+FRONTEND_APP_URL="${DATAFLOW_APP_URL:-${VITE_APP_URL:-}}"
+if [ -z "$FRONTEND_APP_URL" ]; then
+  echo "Warning: DATAFLOW_APP_URL/VITE_APP_URL is not set. Clerk emails and redirects may use the current host or droplet IP."
+fi
+VITE_API_URL="" VITE_APP_URL="$FRONTEND_APP_URL" npm run build
 cp -r dist/* /var/www/html/dataflow/
 
 # Setup nginx
@@ -56,4 +60,4 @@ systemctl start dataflow
 chown -R www-data:www-data /var/www/html/dataflow
 
 echo "=== Setup complete ==="
-echo "Visit http://$(curl -s ifconfig.me) to see your app"
+echo "Visit your configured domain to see your app"

@@ -1,12 +1,23 @@
 import React, { useEffect, useState } from 'react'
+import { getAuthHeaders } from '../../services/api.js'
+import { fireToast, getSetting } from '../../services/toast.js'
 import './tabs.css'
 
 const BASE = import.meta.env.VITE_API_URL || ''
 
 const SEV = {
-  high:   { label: 'Error',   color: '#fca5a5',             bg: 'var(--red-bg)',      icon: '⚠' },
-  medium: { label: 'Warning', color: '#fcd34d',             bg: 'var(--amber-bg)',    icon: '!' },
-  low:    { label: 'Info',    color: 'var(--accent-light)', bg: 'var(--accent-glow)', icon: 'i' },
+  high:   { label: 'Errors',   singular: 'Error',   className: 'danger', icon: '!' },
+  medium: { label: 'Warnings', singular: 'Warning', className: 'warning', icon: '!' },
+  low:    { label: 'Info',     singular: 'Info',    className: 'info',    icon: 'i' },
+}
+
+function pct(n, d) {
+  if (!d) return 0
+  return Math.round((n / d) * 100)
+}
+
+function plural(n, word) {
+  return `${n.toLocaleString()} ${word}${n === 1 ? '' : 's'}`
 }
 
 export default function CleaningTab({ data, onDataUpdate }) {
@@ -29,7 +40,8 @@ export default function CleaningTab({ data, onDataUpdate }) {
     setResult(null)
     setSuggestions(null)
 
-    fetch(`${BASE}/api/datasets/${data.id}/suggestions`)
+    getAuthHeaders().then(headers =>
+    fetch(`${BASE}/api/datasets/${data.id}/suggestions`, { headers })
       .then(r => r.json())
       .then(d => {
         if (cancelled) return
@@ -41,6 +53,7 @@ export default function CleaningTab({ data, onDataUpdate }) {
         setLoading(false)
       })
       .catch(() => { if (!cancelled) setLoading(false) })
+    )
 
     return () => { cancelled = true }
   }, [scanKey])   // scanKey is the sole trigger — data.id never changes for the same dataset
@@ -52,9 +65,10 @@ export default function CleaningTab({ data, onDataUpdate }) {
   async function apply() {
     setApplying(true)
     try {
+      const authHeaders = await getAuthHeaders()
       const r = await fetch(`${BASE}/api/datasets/${data.id}/clean`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ fix_ids: [...selected] }),
       })
       setResult(await r.json())
@@ -68,17 +82,19 @@ export default function CleaningTab({ data, onDataUpdate }) {
   async function useCleaned() {
     setPromoting(true)
     try {
+      const authHeaders = await getAuthHeaders()
       const r = await fetch(`${BASE}/api/datasets/${data.id}/use-cleaned`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ fix_ids: result?.applied_fix_ids || [...selected] }),
       })
       const d = await r.json()
       if (d.ok) {
         if (onDataUpdate && d.dataset) onDataUpdate(d.dataset)
-        // Always bump scanKey — shape may be identical (only nulls filled),
-        // so we can't rely on prop comparison to trigger a re-fetch
         setScanKey(k => k + 1)
+        if (getSetting('notifications.cleaning_applied', true)) {
+          fireToast('Cleaned dataset is now active', 'success')
+        }
       }
     } catch {}
     finally { setPromoting(false) }
@@ -87,7 +103,8 @@ export default function CleaningTab({ data, onDataUpdate }) {
   async function restoreOriginal() {
     setRestoring(true)
     try {
-      const r = await fetch(`${BASE}/api/datasets/${data.id}/restore-original`, { method: 'POST' })
+      const authHeaders = await getAuthHeaders()
+      const r = await fetch(`${BASE}/api/datasets/${data.id}/restore-original`, { method: 'POST', headers: authHeaders })
       const d = await r.json()
       if (d.ok) {
         if (onDataUpdate && d.dataset) onDataUpdate(d.dataset)
@@ -103,15 +120,37 @@ export default function CleaningTab({ data, onDataUpdate }) {
   )
 
   if (!suggestions?.length) return (
-    <div className="tab-empty">
-      <div>✓ No cleaning issues detected — this dataset looks clean.</div>
+    <div className="clean-empty">
+      <div className="clean-empty-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <div className="clean-empty-title">This dataset is clean</div>
+      <div className="clean-empty-copy">No quality issues were detected. The data is structured correctly and ready for analysis or export.</div>
+      <div className="clean-empty-badges">
+        <span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          No nulls flagged
+        </span>
+        <span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          No duplicates found
+        </span>
+        <span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Schema consistent
+        </span>
+      </div>
       {hasBackup && (
-        <div style={{ marginTop: 16 }}>
-          <button onClick={restoreOriginal} disabled={restoring}
-            style={{ fontSize: 13, background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '7px 16px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-            {restoring ? 'Restoring…' : '↩ Restore original dataset'}
-          </button>
-        </div>
+        <button className="clean-empty-restore" onClick={restoreOriginal} disabled={restoring}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+          {restoring ? 'Restoring…' : 'Restore original dataset'}
+        </button>
       )}
     </div>
   )
@@ -119,35 +158,98 @@ export default function CleaningTab({ data, onDataUpdate }) {
   const errors   = suggestions.filter(s => s.severity === 'high').length
   const warnings = suggestions.filter(s => s.severity === 'medium').length
   const infos    = suggestions.filter(s => s.severity === 'low').length
+  const selectedItems = suggestions.filter(s => selected.has(s.id))
+  const selectedErrors = selectedItems.filter(s => s.severity === 'high').length
+  const selectedWarnings = selectedItems.filter(s => s.severity === 'medium').length
+  const selectedInfos = selectedItems.filter(s => s.severity === 'low').length
+  const selectedPct = pct(selected.size, suggestions.length)
+  const issueColumns = [...new Set(suggestions.map(s => s.column).filter(Boolean))]
+  const issueColumnLabel = issueColumns.length
+    ? plural(issueColumns.length, 'affected column')
+    : 'Dataset-level checks'
+  const healthClass = errors ? 'danger' : warnings ? 'warning' : 'info'
+  const healthLabel = errors ? 'Needs attention' : warnings ? 'Review recommended' : 'Low risk'
+  const healthCopy = errors
+    ? `${plural(errors, 'blocking issue')} should be handled before modeling or export.`
+    : warnings
+      ? `${plural(warnings, 'warning')} may affect quality, but the dataset can continue.`
+      : 'Only informational checks were found.'
 
   return (
-    <div>
-      <div className="tab-grid-4">
-        <div className="stat-box"><div className="stat-box-label">Issues found</div><div className="stat-box-value">{suggestions.length}</div></div>
-        <div className="stat-box"><div className="stat-box-label">Errors</div><div className="stat-box-value" style={{ color: 'var(--red)' }}>{errors}</div></div>
-        <div className="stat-box"><div className="stat-box-label">Warnings</div><div className="stat-box-value" style={{ color: 'var(--amber)' }}>{warnings}</div></div>
-        <div className="stat-box"><div className="stat-box-label">Info</div><div className="stat-box-value" style={{ color: 'var(--accent-light)' }}>{infos}</div></div>
+    <div className="clean-report">
+      <section className={`clean-hero ${healthClass}`}>
+        <div className="clean-hero-main">
+          <div className="clean-eyebrow">Cleaning report</div>
+          <div className="clean-hero-title">{healthLabel}</div>
+          <div className="clean-hero-copy">{healthCopy}</div>
+        </div>
+        <div className="clean-score">
+          <span>{suggestions.length}</span>
+          <small>issues found</small>
+        </div>
+        <div className="clean-hero-meta">
+          <div>
+            <span>{plural(data.shape.rows, 'row')}</span>
+            <small>current dataset</small>
+          </div>
+          <div>
+            <span>{issueColumnLabel}</span>
+            <small>{data.shape.columns.toLocaleString()} total columns</small>
+          </div>
+        </div>
+      </section>
+
+      <div className="clean-summary-grid">
+        <div className="clean-metric danger">
+          <div className="clean-metric-label">Errors</div>
+          <div className="clean-metric-value">{errors}</div>
+          <div className="clean-metric-note">{selectedErrors} selected</div>
+        </div>
+        <div className="clean-metric warning">
+          <div className="clean-metric-label">Warnings</div>
+          <div className="clean-metric-value">{warnings}</div>
+          <div className="clean-metric-note">{selectedWarnings} selected</div>
+        </div>
+        <div className="clean-metric info">
+          <div className="clean-metric-label">Info</div>
+          <div className="clean-metric-value">{infos}</div>
+          <div className="clean-metric-note">{selectedInfos} selected</div>
+        </div>
+        <div className="clean-metric selected">
+          <div className="clean-metric-label">Selected fixes</div>
+          <div className="clean-metric-value">{selected.size}</div>
+          <div className="clean-progress" aria-hidden="true">
+            <span style={{ width: `${selectedPct}%` }} />
+          </div>
+          <div className="clean-metric-note">{selectedPct}% of report</div>
+        </div>
       </div>
 
-      <div className="panel" style={{ marginBottom: 16 }}>
-        <div className="panel-title">Issues detected</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <div className="clean-panel">
+        <div className="clean-panel-head">
+          <div>
+            <div className="panel-title">Issues detected</div>
+            <div className="clean-panel-subtitle">Select the fixes you want to apply to this dataset.</div>
+          </div>
+          <div className="clean-selection-pill">{selected.size} / {suggestions.length} selected</div>
+        </div>
+        <div className="clean-issue-list">
           {suggestions.map(s => {
             const sv = SEV[s.severity] || SEV.low
             const checked = selected.has(s.id)
             return (
-              <label key={s.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', padding: '14px 8px', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }}>
-                <input type="checkbox" checked={checked} onChange={() => toggle(s.id)}
-                  style={{ marginTop: '3px', width: '15px', height: '15px', cursor: 'pointer' }} />
-                <span style={{ color: sv.color, fontSize: '16px', marginTop: '-1px' }}>{sv.icon}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 600 }}>{s.issue}</span>
-                    <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', background: sv.bg, color: sv.color }}>{sv.label}</span>
-                    {s.column && <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>{s.column}</span>}
+              <label key={s.id} className={`clean-issue ${sv.className} ${checked ? 'selected' : ''}`}>
+                <input type="checkbox" checked={checked} onChange={() => toggle(s.id)} />
+                <span className="clean-issue-icon">{sv.icon}</span>
+                <div className="clean-issue-body">
+                  <div className="clean-issue-top">
+                    <span className="clean-issue-title">{s.issue}</span>
+                    <span className={`clean-severity ${sv.className}`}>{sv.singular}</span>
+                    {s.column && <span className="clean-column">{s.column}</span>}
                   </div>
-                  <div style={{ fontSize: '13px', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>✓</span> {s.label} — {s.detail}
+                  <div className="clean-fix-line">
+                    <span>Fix</span>{' '}
+                    {s.label} — {s.detail}
                   </div>
                 </div>
               </label>
@@ -158,14 +260,12 @@ export default function CleaningTab({ data, onDataUpdate }) {
 
       {/* ── Action area ── */}
       {!result ? (
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button onClick={apply} disabled={applying || selected.size === 0}
-            style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 24px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', opacity: (applying || selected.size === 0) ? 0.5 : 1 }}>
+        <div className="clean-actions">
+          <button className="clean-primary-btn" onClick={apply} disabled={applying || selected.size === 0}>
             {applying ? 'Applying…' : `Apply ${selected.size} fix${selected.size !== 1 ? 'es' : ''}`}
           </button>
           {hasBackup && (
-            <button onClick={restoreOriginal} disabled={restoring}
-              style={{ fontSize: 13, background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '9px 16px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+            <button className="clean-ghost-btn" onClick={restoreOriginal} disabled={restoring}>
               {restoring ? 'Restoring…' : '↩ Restore original'}
             </button>
           )}
@@ -173,38 +273,39 @@ export default function CleaningTab({ data, onDataUpdate }) {
       ) : result.error ? (
         <div>
           <div className="ws-error" style={{ marginBottom: 12 }}>{result.error}</div>
-          <button onClick={() => setResult(null)}
-            style={{ fontSize: 13, background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '7px 16px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+          <button className="clean-ghost-btn" onClick={() => setResult(null)}>
             ← Try again
           </button>
         </div>
       ) : (
-        <div className="panel" style={{ borderColor: 'rgba(16,185,129,0.3)', background: 'var(--green-bg)' }}>
-          <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--green)', marginBottom: '8px' }}>✓ Fixes applied and ready</div>
-          <div style={{ fontSize: '13px', color: '#6ee7b7', marginBottom: '12px' }}>
-            {result.rows_after?.toLocaleString()} rows · {result.cols_after} columns
-            {result.rows_before !== result.rows_after && ` · ${result.rows_before - result.rows_after} duplicate rows removed`}
+        <div className="clean-result">
+          <div className="clean-result-head">
+            <div className="clean-result-mark">✓</div>
+            <div>
+              <div className="clean-result-title">Fixes applied and ready</div>
+              <div className="clean-result-meta">
+                {result.rows_after?.toLocaleString()} rows · {result.cols_after} columns
+                {result.rows_before !== result.rows_after && ` · ${result.rows_before - result.rows_after} duplicate rows removed`}
+              </div>
+            </div>
           </div>
 
           {result.log?.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
+            <div className="clean-log">
               {result.log.map((l, i) => (
-                <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', padding: '2px 0' }}>· {l}</div>
+                <div key={i}>{l}</div>
               ))}
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button onClick={useCleaned} disabled={promoting}
-              style={{ background: 'var(--green)', color: '#04231a', border: 'none', borderRadius: '8px', padding: '9px 18px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: promoting ? 0.6 : 1 }}>
+          <div className="clean-actions">
+            <button className="clean-success-btn" onClick={useCleaned} disabled={promoting}>
               {promoting ? 'Switching…' : '↻ Continue with cleaned data'}
             </button>
-            <button onClick={() => window.open(`${BASE}/api/datasets/${data.id}/download`, '_blank')}
-              style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-default)', borderRadius: '8px', padding: '9px 18px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+            <button className="clean-secondary-btn" onClick={() => window.open(`${BASE}/api/datasets/${data.id}/download`, '_blank')}>
               ↓ Download cleaned CSV
             </button>
-            <button onClick={() => setResult(null)}
-              style={{ background: 'none', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '9px 18px', fontSize: '13px', cursor: 'pointer' }}>
+            <button className="clean-ghost-btn" onClick={() => setResult(null)}>
               ← Back to issues
             </button>
           </div>

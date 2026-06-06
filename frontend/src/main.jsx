@@ -7,6 +7,7 @@ import './index.css'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN
+const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin
 
 if (!PUBLISHABLE_KEY) {
   throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in environment')
@@ -25,9 +26,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ClerkProvider
       publishableKey={PUBLISHABLE_KEY}
-      afterSignInUrl="/"
-      afterSignUpUrl="/"
-      afterSignOutUrl="/"
+      fallbackRedirectUrl={APP_URL}
+      afterSignOutUrl={APP_URL}
     >
       <Sentry.ErrorBoundary fallback={<div className="app-error">Something went wrong.</div>}>
         <App />

@@ -3,13 +3,18 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import './tabs.css'
 
 const tooltipStyle = { background:'#121829', border:'1px solid #242d42', borderRadius:8, fontSize:12, color:'#e8edf7' }
+const GRID = '#242d42'
+const TICK = '#5f6b82'
+const C_NUM = '#3b82f6'
+const C_CAT = '#a78bfa'
+const C_TIME = '#f59e0b'
 
 function SkewBadge({ skewness }) {
   if (skewness === null || skewness === undefined) return null
   const abs = Math.abs(skewness)
   if (abs < 0.5) return <span style={{fontSize:'10px',padding:'1px 6px',borderRadius:'4px',background:'var(--green-bg)',color:'var(--green)'}}>symmetric</span>
-  if (abs < 1.0) return <span style={{fontSize:'10px',padding:'1px 6px',borderRadius:'4px',background:'var(--amber-bg)',color:'var(--amber)'}}>mod. skew {skewness > 0 ? '→' : '←'}</span>
-  return <span style={{fontSize:'10px',padding:'1px 6px',borderRadius:'4px',background:'var(--red-bg)',color:'#fca5a5'}}>skewed {skewness > 0 ? '→' : '←'} {skewness.toFixed(2)}</span>
+  if (abs < 1.0) return <span style={{fontSize:'10px',padding:'1px 6px',borderRadius:'4px',background:'var(--amber-bg)',color:'var(--amber)'}}>mod. skew {skewness > 0 ? 'right' : 'left'}</span>
+  return <span style={{fontSize:'10px',padding:'1px 6px',borderRadius:'4px',background:'var(--red-bg)',color:'var(--red)'}}>skewed {skewness > 0 ? 'right' : 'left'} {skewness.toFixed(2)}</span>
 }
 
 // SVG box plot
@@ -43,7 +48,7 @@ function BoxPlot({ bp }) {
         <span>{hi?.toFixed?.(2) ?? hi}</span>
       </div>
       {outlier_count > 0 && (
-        <div style={{fontSize:11,color:'var(--amber)',marginTop:6}}>⚠ {outlier_count} outlier{outlier_count !== 1 ? 's' : ''} outside fences</div>
+        <div style={{fontSize:11,color:'var(--amber)',marginTop:6}}>{outlier_count} outlier{outlier_count !== 1 ? 's' : ''} outside fences</div>
       )}
     </div>
   )
@@ -65,15 +70,15 @@ function MiniChart({ d, onClick }) {
       <ResponsiveContainer width="100%" height={90}>
         {isTime ? (
           <LineChart data={data} margin={{top:4,right:4,left:4,bottom:0}}>
-            <Line type="monotone" dataKey="count" stroke="#f59e0b" strokeWidth={1.5} dot={false} />
+            <Line type="monotone" dataKey="count" stroke={C_TIME} strokeWidth={1.5} dot={false} />
           </LineChart>
         ) : isHist ? (
           <BarChart data={data} margin={{top:4,right:2,left:2,bottom:0}}>
-            <Bar dataKey="count" fill="#3b82f6" radius={[2,2,0,0]} />
+            <Bar dataKey="count" fill={C_NUM} radius={[2,2,0,0]} />
           </BarChart>
         ) : (
           <BarChart data={data} margin={{top:4,right:2,left:2,bottom:0}}>
-            <Bar dataKey="count" fill="#34d399" radius={[2,2,0,0]} />
+            <Bar dataKey="count" fill={C_CAT} radius={[2,2,0,0]} />
           </BarChart>
         )}
       </ResponsiveContainer>
@@ -81,7 +86,7 @@ function MiniChart({ d, onClick }) {
         <div className="dist-mini-stats">
           μ {d.stats.mean} · σ {d.stats.std}
           {d.stats.skewness != null && Math.abs(d.stats.skewness) > 1 && (
-            <span style={{marginLeft:6,color:'var(--amber)'}}>skew {d.stats.skewness > 0 ? '→' : '←'}</span>
+            <span style={{marginLeft:6,color:'var(--amber)'}}>skew {d.stats.skewness > 0 ? 'right' : 'left'}</span>
           )}
         </div>
       )}
@@ -111,27 +116,27 @@ function Expanded({ d, onClose }) {
       <ResponsiveContainer width="100%" height={300}>
         {isTime ? (
           <LineChart data={d.timeline} margin={{top:8,right:12,left:-12,bottom:4}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e2638" />
-            <XAxis dataKey="period" tick={{fontSize:10,fill:'#5f6b82'}} axisLine={false} tickLine={false} />
-            <YAxis tick={{fontSize:11,fill:'#5f6b82'}} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+            <XAxis dataKey="period" tick={{fontSize:10,fill:TICK}} axisLine={false} tickLine={false} />
+            <YAxis tick={{fontSize:11,fill:TICK}} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Line type="monotone" dataKey="count" stroke="#f59e0b" strokeWidth={2} dot={{r:2}} />
+            <Line type="monotone" dataKey="count" stroke={C_TIME} strokeWidth={2} dot={{r:2}} />
           </LineChart>
         ) : isHist ? (
           <BarChart data={d.bins} margin={{top:8,right:12,left:-12,bottom:4}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e2638" />
-            <XAxis dataKey="range" tick={{fontSize:10,fill:'#5f6b82'}} axisLine={false} tickLine={false} />
-            <YAxis tick={{fontSize:11,fill:'#5f6b82'}} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+            <XAxis dataKey="range" tick={{fontSize:10,fill:TICK}} axisLine={false} tickLine={false} />
+            <YAxis tick={{fontSize:11,fill:TICK}} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} cursor={{fill:'rgba(59,130,246,0.08)'}} />
-            <Bar dataKey="count" fill="#3b82f6" radius={[4,4,0,0]} />
+            <Bar dataKey="count" fill={C_NUM} radius={[4,4,0,0]} />
           </BarChart>
         ) : (
           <BarChart data={d.values} layout="vertical" margin={{top:8,right:16,left:8,bottom:4}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e2638" horizontal={false} />
-            <XAxis type="number" tick={{fontSize:11,fill:'#5f6b82'}} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="value" tick={{fontSize:11,fill:'#9aa7bd'}} axisLine={false} tickLine={false} width={110} tickFormatter={v=>v.length>14?v.slice(0,14)+'…':v} />
-            <Tooltip contentStyle={tooltipStyle} cursor={{fill:'rgba(52,211,153,0.08)'}} />
-            <Bar dataKey="count" fill="#34d399" radius={[0,4,4,0]} />
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} horizontal={false} />
+            <XAxis type="number" tick={{fontSize:11,fill:TICK}} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="value" tick={{fontSize:11,fill:'#8b9bb4'}} axisLine={false} tickLine={false} width={110} tickFormatter={v=>v.length>14?v.slice(0,14)+'...':v} />
+            <Tooltip contentStyle={tooltipStyle} cursor={{fill:'rgba(167,139,250,0.08)'}} />
+            <Bar dataKey="count" fill={C_CAT} radius={[0,4,4,0]} />
           </BarChart>
         )}
       </ResponsiveContainer>
@@ -142,7 +147,7 @@ function Expanded({ d, onClose }) {
               <div key={k} className="stat-box">
                 <div className="stat-box-label">{l}</div>
                 <div className="stat-box-value" style={{fontSize:'18px'}}>
-                  {d.stats[k] != null ? d.stats[k] : '–'}
+                  {d.stats[k] != null ? d.stats[k] : '-'}
                 </div>
                 {k === 'skewness' && d.stats[k] != null && (
                   <div className="stat-box-sub">{Math.abs(d.stats[k]) < 0.5 ? 'symmetric' : Math.abs(d.stats[k]) < 1 ? 'moderate' : 'high — consider transform'}</div>
@@ -258,7 +263,7 @@ export default function DistributionsTab({ eda, activeCol, setActiveCol }) {
       {skipped.length > 0 && (
         <div className="dist-skipped">
           <button className="dist-skipped-toggle" onClick={()=>setShowSkipped(s=>!s)}>
-            {showSkipped?'▼':'▶'} {skipped.length} columns not charted
+            {showSkipped ? 'Hide' : 'Show'} {skipped.length} columns not charted
           </button>
           {showSkipped && (
             <div className="dist-skipped-list">

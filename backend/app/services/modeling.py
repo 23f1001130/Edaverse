@@ -295,33 +295,224 @@ def compute_model_importance(dataset: dict, target: str) -> dict:
 def build_html_report(dataset: dict, target: str | None = None) -> str:
     eda = compute_eda(dataset)
     comparison = compute_before_after_comparison(dataset)
-    model = None
-    if target:
+    schema = dataset.get("schema", [])
+    shape = dataset.get("shape", {}) or {}
+    rows = shape.get("rows") or comparison.get("current", {}).get("rows") or 0
+    cols = shape.get("columns") or comparison.get("current", {}).get("columns") or len(schema)
+
+    def esc(v):
+        return html.escape("" if v is None else str(v))
+
+    def pct(v, suffix: str = "%"):
+        if v is None:
+            return "n/a"
+        return f"{v}{suffix}"
+
+    def fmt(v):
+        if v is None:
+            return "n/a"
+        if isinstance(v, float):
+            return f"{v:,.4g}"
+        if isinstance(v, int):
+            return f"{v:,}"
+        return esc(v)
+
+    def bar(value, max_value=100, color="var(--accent)"):
         try:
-            model = compute_model_importance(dataset, target)
+            width = max(0, min(100, float(value) / max(float(max_value), 1) * 100))
+        except Exception:
+            width = 0
+        return f"<span class='bar'><span style='width:{width:.1f}%;background:{color}'></span></span>"
+
+    def badge(text, tone="neutral"):
+        return f"<span class='badge {tone}'>{esc(text)}</span>"
+
+    def empty_row(cols_count: int, text: str):
+        return f"<tr><td colspan='{cols_count}' class='empty'>{esc(text)}</td></tr>"
+
+    def infer_target_column():
+        signals = {
+            "target": 5, "label": 5, "outcome": 5, "class": 4, "result": 4,
+            "churn": 5, "survived": 5, "default": 5, "fraud": 5, "converted": 5,
+            "conversion": 4, "sale": 3, "sales": 3, "revenue": 4, "price": 3,
+            "amount": 2, "value": 2, "rating": 3, "score": 3,
+        }
+        candidates = []
+        for col in schema:
+            name = col.get("name", "")
+            lower = name.lower()
+            ctype = col.get("type")
+            if ctype == "datetime" or any(k in lower for k in ("id", "uuid", "key", "timestamp")):
+                continue
+            unique = col.get("unique")
+            null_pct = col.get("null_pct") or 0
+            score = 0
+            for token, weight in signals.items():
+                if token in lower:
+                    score += weight
+            if ctype in ("categorical", "boolean") and (unique is None or 2 <= unique <= 30):
+                score += 2
+            if ctype in ("integer", "float") and (unique is None or unique > 10):
+                score += 1
+            if null_pct > 30:
+                score -= 2
+            if score > 0:
+                candidates.append({"name": name, "type": ctype, "score": score, "null_pct": null_pct})
+        candidates.sort(key=lambda c: (c["score"], -c["null_pct"]), reverse=True)
+        return candidates[0] if candidates else None
+
+    inferred_target = infer_target_column()
+    model_target = target or (inferred_target["name"] if inferred_target and inferred_target["score"] >= 6 else None)
+    model = None
+    if model_target:
+        try:
+            model = compute_model_importance(dataset, model_target)
         except Exception:
             model = None
 
-    def esc(v):
-        return html.escape(str(v))
+    total_cells = max(int(rows or 0) * max(int(cols or 0), 1), 1)
+    total_nulls = sum(int(c.get("null_count", 0) or 0) for c in schema)
+    missing_pct = round(total_nulls / total_cells * 100, 1)
+    duplicate_rows = comparison.get("current", {}).get("duplicate_rows", 0) or 0
+    duplicate_pct = round(duplicate_rows / max(int(rows or 0), 1) * 100, 1)
+    outlier_cols = eda.get("numeric_profile", {}).get("outlier_columns", 0) or 0
+    skewed_cols = eda.get("numeric_profile", {}).get("skewed_count", 0) or 0
+    high_card_cols = eda.get("categorical_profile", {}).get("high_cardinality_count", 0) or 0
+    imbalanced_cols = eda.get("categorical_profile", {}).get("imbalanced_count", 0) or 0
+    health_score = int(max(0, min(100, 100 - missing_pct * 1.2 - duplicate_pct * 1.5 - outlier_cols * 3 - high_card_cols * 2 - skewed_cols)))
+    health_tone = "good" if health_score >= 80 else "warn" if health_score >= 55 else "bad"
+    health_label = "Analysis ready" if health_score >= 80 else "Needs analyst review" if health_score >= 55 else "High data risk"
 
-    obs = "".join(f"<li>{esc(o.get('text', ''))}</li>" for o in eda.get("observations", []))
-    nulls = sorted(eda.get("nulls", []), key=lambda x: x.get("null_pct", 0), reverse=True)[:10]
-    null_rows = "".join(f"<tr><td>{esc(n['column'])}</td><td>{n['null_pct']}%</td><td>{n['null_count']}</td></tr>" for n in nulls)
+    type_counts = {}
+    for col in schema:
+        type_counts[col.get("type", "unknown")] = type_counts.get(col.get("type", "unknown"), 0) + 1
+    type_cards = "".join(
+        f"<div class='type-pill'><span>{esc(k.title())}</span><strong>{v}</strong></div>"
+        for k, v in sorted(type_counts.items(), key=lambda kv: kv[0])
+    )
+
+    observations = eda.get("observations", [])
+    obs_cards = "".join(
+        f"<li><span>{esc(o.get('text', ''))}</span></li>"
+        for o in observations[:8]
+    ) or "<li><span>No major automated observations were produced.</span></li>"
+
+    nulls = sorted(
+        [n for n in eda.get("nulls", []) if (n.get("null_pct") or 0) > 0],
+        key=lambda x: x.get("null_pct", 0),
+        reverse=True,
+    )[:12]
+    null_rows = "".join(
+        f"<tr><td><strong>{esc(n['column'])}</strong></td><td>{pct(n.get('null_pct'))}</td>"
+        f"<td>{fmt(n.get('null_count'))}</td><td>{bar(n.get('null_pct') or 0, 100, 'var(--danger)')}</td></tr>"
+        for n in nulls
+    ) or empty_row(4, "No missing values detected in the tracked columns.")
+
     num_rows = "".join(
-        f"<tr><td>{esc(r['column'])}</td><td>{r.get('skewness')}</td><td>{r.get('outlier_count')}</td><td>{r.get('outlier_pct')}%</td></tr>"
+        f"<tr><td><strong>{esc(r['column'])}</strong></td><td>{fmt(r.get('skewness'))}</td>"
+        f"<td>{fmt(r.get('outlier_count'))}</td><td>{pct(r.get('outlier_pct'))}</td>"
+        f"<td>{fmt(r.get('mean'))}</td><td>{fmt(r.get('std'))}</td></tr>"
         for r in eda.get("numeric_profile", {}).get("columns", [])[:12]
-    )
+    ) or empty_row(6, "No numeric columns were available for numeric triage.")
+
     cat_rows = "".join(
-        f"<tr><td>{esc(r['column'])}</td><td>{r.get('unique')}</td><td>{r.get('freq_pct')}%</td><td>{esc(r.get('strategy'))}</td></tr>"
+        f"<tr><td><strong>{esc(r['column'])}</strong></td><td>{fmt(r.get('unique'))}</td>"
+        f"<td>{pct(r.get('freq_pct'))}</td><td>{bar(r.get('freq_pct') or 0, 100, 'var(--teal)')}</td>"
+        f"<td>{badge(r.get('strategy'), 'info' if r.get('strategy') != 'high-cardinality' else 'warn')}</td></tr>"
         for r in eda.get("categorical_profile", {}).get("columns", [])[:12]
-    )
+    ) or empty_row(5, "No categorical columns were available for categorical triage.")
+
+    corr_pairs = []
+    corr = eda.get("correlation") or {}
+    seen = set()
+    for cell in corr.get("matrix", []) or []:
+        a, b, value = cell.get("x"), cell.get("y"), cell.get("value")
+        if not a or not b or a == b or value is None:
+            continue
+        key = tuple(sorted([a, b]))
+        if key in seen:
+            continue
+        seen.add(key)
+        corr_pairs.append((a, b, value, abs(value)))
+    corr_pairs.sort(key=lambda x: x[3], reverse=True)
+    corr_rows = "".join(
+        f"<tr><td>{esc(a)}</td><td>{esc(b)}</td><td>{fmt(v)}</td>"
+        f"<td>{bar(abs_v, 1, 'var(--accent)')}</td>"
+        f"<td>{badge('Strong' if abs_v >= 0.7 else 'Moderate' if abs_v >= 0.4 else 'Weak', 'warn' if abs_v >= 0.7 else 'neutral')}</td></tr>"
+        for a, b, v, abs_v in corr_pairs[:8]
+    ) or empty_row(5, "No usable numeric correlation pairs were found.")
+
+    missing_pairs = (eda.get("missingness") or {}).get("flagged_pairs", []) or []
+    missing_pair_rows = "".join(
+        f"<tr><td>{esc(r.get('a'))}</td><td>{esc(r.get('b'))}</td><td>{pct(r.get('actual_pct'))}</td>"
+        f"<td>{pct(r.get('expected_pct'))}</td><td>{fmt(r.get('lift'))}x</td></tr>"
+        for r in missing_pairs[:5]
+    ) or empty_row(5, "No unusual missingness co-occurrence patterns were detected.")
+
+    datetime_cols = [c for c in schema if c.get("type") == "datetime"]
+    identifier_cols = [
+        r for r in eda.get("categorical_profile", {}).get("columns", [])
+        if r.get("strategy") == "identifier"
+    ][:8]
+    segment_cols = [
+        r for r in eda.get("categorical_profile", {}).get("columns", [])
+        if r.get("strategy") in ("one-hot", "ordinal/frequency") and not r.get("is_imbalanced")
+    ][:8]
+    dataset_signals = []
+    if datetime_cols:
+        dataset_signals.append(f"{len(datetime_cols)} datetime column(s): time-series or cohort analysis is likely useful.")
+    if identifier_cols:
+        dataset_signals.append(f"{len(identifier_cols)} identifier-like column(s): keep for joins/audit, exclude from modelling features.")
+    if segment_cols:
+        dataset_signals.append(f"{len(segment_cols)} segment-ready categorical column(s): good candidates for grouped KPI cuts.")
+    if inferred_target:
+        dataset_signals.append(f"Likely target candidate: {inferred_target['name']} ({inferred_target['type']}).")
+    signal_items = "".join(f"<li>{esc(s)}</li>" for s in dataset_signals) or "<li>No strong structural signals were detected; start with quality checks and univariate profiling.</li>"
+
+    recommendations = []
+    if missing_pct >= 10:
+        recommendations.append("Prioritize missing-value strategy before modelling. Separate structural nulls from data-entry gaps.")
+    if duplicate_rows:
+        recommendations.append("Review duplicate rows. If they are not valid repeated events, deduplicate before KPI reporting.")
+    if corr_pairs and corr_pairs[0][3] >= 0.9:
+        recommendations.append("At least one pair of numeric columns is highly correlated. For modelling, remove or regularize redundant features.")
+    if high_card_cols:
+        recommendations.append("High-cardinality categorical features need careful encoding. Prefer frequency, target, or embedding-style encodings over wide one-hot expansion.")
+    if skewed_cols:
+        recommendations.append("Skewed numeric columns may need log, winsorization, or robust scaling before statistical modelling.")
+    if outlier_cols:
+        recommendations.append("Investigate outliers as business events first. Treat them only after confirming they are errors or unwanted extremes.")
+    if datetime_cols:
+        recommendations.append("Use the datetime fields to check seasonality, leakage, train/test split boundaries, and trend drift.")
+    if inferred_target and not target:
+        recommendations.append(f"Consider using {inferred_target['name']} as the analysis target, then rerun the report with an explicit target when needed.")
+    if not recommendations:
+        recommendations.append("Dataset looks relatively clean. Move into hypothesis testing, segmentation, and model validation.")
+    rec_items = "".join(f"<li>{esc(r)}</li>" for r in recommendations[:8])
+
     model_rows = ""
     if model and "importance" in model:
         model_rows = "".join(
-            f"<tr><td>{esc(r['feature'])}</td><td>{r['permutation_importance']}</td><td>{r['coefficient_importance']}</td></tr>"
+            f"<tr><td><strong>{esc(r['feature'])}</strong></td><td>{fmt(r['permutation_importance'])}</td>"
+            f"<td>{bar(r['permutation_importance'] or 0, max([x.get('permutation_importance') or 0 for x in model['importance'][:15]] + [1]), 'var(--success)')}</td>"
+            f"<td>{fmt(r['coefficient_importance'])}</td></tr>"
             for r in model["importance"][:15]
         )
+    model_section = ""
+    if model_rows:
+        model_note = "Inferred target" if not target and model_target else "Selected target"
+        model_section = (
+            f"<section class='section'><div class='section-head'><div><p class='eyebrow'>Predictive signal</p>"
+            f"<h2>Model Importance: {esc(model_target)}</h2></div>{badge(model_note, 'info')}</div>"
+            f"<div class='model-summary'>"
+            f"<div><span>Task</span><strong>{esc(model.get('task'))}</strong></div>"
+            f"<div><span>Metric</span><strong>{esc(model.get('metric'))}: {fmt(model.get('baseline_score'))}</strong></div>"
+            f"<div><span>Rows used</span><strong>{fmt(model.get('rows_used'))}</strong></div>"
+            f"<div><span>Features used</span><strong>{fmt(model.get('features_used'))}</strong></div>"
+            f"</div><table><tr><th>Feature</th><th>Permutation importance</th><th>Signal bar</th><th>Coefficient importance</th></tr>{model_rows}</table>"
+            f"<p class='note'>{esc(model.get('note'))}</p></section>"
+        )
+
     comparison_html = ""
     if comparison.get("comparisons"):
         blocks = []
@@ -329,43 +520,130 @@ def build_html_report(dataset: dict, target: str | None = None) -> str:
             added = ", ".join(esc(c) for c in comp.get("added_columns", [])[:16]) or "None"
             dropped = ", ".join(esc(c) for c in comp.get("dropped_columns", [])[:16]) or "None"
             null_rows_cmp = "".join(
-                f"<tr><td>{esc(r['column'])}</td><td>{r['before_null_pct']}%</td><td>{r['after_null_pct']}%</td><td>{r['delta_pct']}%</td></tr>"
+                f"<tr><td><strong>{esc(r['column'])}</strong></td><td>{pct(r['before_null_pct'])}</td>"
+                f"<td>{pct(r['after_null_pct'])}</td><td>{pct(r['delta_pct'])}</td></tr>"
                 for r in comp.get("null_changes", [])[:10]
-            )
+            ) or empty_row(4, "No meaningful null-rate changes were detected.")
             blocks.append(
-                f"<h3>{esc(comp['label'])}</h3>"
-                f"<div class='grid'>"
-                f"<div class='card'><div class='muted'>Rows changed</div><div class='value'>{comp['row_delta']}</div></div>"
-                f"<div class='card'><div class='muted'>Columns changed</div><div class='value'>{comp['column_delta']}</div></div>"
-                f"<div class='card'><div class='muted'>Null % before</div><div class='value'>{comp['before']['null_pct']}%</div></div>"
-                f"<div class='card'><div class='muted'>Null % after</div><div class='value'>{comp['after']['null_pct']}%</div></div>"
-                f"</div><p><b>Added columns:</b> {added}</p><p><b>Dropped columns:</b> {dropped}</p>"
+                f"<div class='comparison-block'><h3>{esc(comp['label'])}</h3>"
+                f"<div class='metric-grid compact'>"
+                f"<div class='metric'><span>Rows changed</span><strong>{fmt(comp['row_delta'])}</strong></div>"
+                f"<div class='metric'><span>Columns changed</span><strong>{fmt(comp['column_delta'])}</strong></div>"
+                f"<div class='metric'><span>Null % before</span><strong>{pct(comp['before']['null_pct'])}</strong></div>"
+                f"<div class='metric'><span>Null % after</span><strong>{pct(comp['after']['null_pct'])}</strong></div>"
+                f"</div><div class='change-list'><p><b>Added columns:</b> {added}</p><p><b>Dropped columns:</b> {dropped}</p></div>"
                 f"<table><tr><th>Column</th><th>Before null %</th><th>After null %</th><th>Delta</th></tr>{null_rows_cmp}</table>"
+                f"</div>"
             )
-        comparison_html = "<h2>Before/After Comparison</h2>" + "".join(blocks)
+        comparison_html = (
+            "<section class='section'><div class='section-head'><div><p class='eyebrow'>Workflow impact</p>"
+            "<h2>Before/After Comparison</h2></div></div>"
+            + "".join(blocks)
+            + "</section>"
+        )
 
     return f"""<!doctype html>
-<html><head><meta charset="utf-8"><title>Dataflow EDA Report</title>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Dataflow EDA Report</title>
 <style>
-body{{font-family:Inter,Segoe UI,Arial,sans-serif;margin:32px;color:#111827;line-height:1.45}}
-h1,h2{{margin-bottom:8px}} .muted{{color:#6b7280}} table{{border-collapse:collapse;width:100%;margin:12px 0 24px}}
-td,th{{border:1px solid #e5e7eb;padding:8px;text-align:left;font-size:13px}} th{{background:#f9fafb}}
-.grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}} .card{{border:1px solid #e5e7eb;border-radius:8px;padding:14px}}
-.value{{font-size:24px;font-weight:700}} ul{{padding-left:20px}}
+:root{{--ink:#17202a;--muted:#657080;--line:#dde5ed;--soft:#f6f8fb;--panel:#ffffff;--accent:#4f6df5;--teal:#1fa6a3;--success:#2c9c69;--warning:#cf7b18;--danger:#d44b4b;--shadow:0 18px 45px rgba(31,45,61,.10)}}
+*{{box-sizing:border-box}} body{{margin:0;background:linear-gradient(180deg,#eef3f7 0,#fbfcfd 260px);color:var(--ink);font-family:Inter,Segoe UI,Arial,sans-serif;line-height:1.48}}
+.page{{max-width:1180px;margin:0 auto;padding:34px 24px 54px}}
+.hero{{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:26px;align-items:stretch;margin-bottom:22px}}
+.hero-main{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:30px;box-shadow:var(--shadow);position:relative;overflow:hidden}}
+.hero-main:before{{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:linear-gradient(90deg,var(--accent),var(--teal),#e6a540)}}
+.eyebrow{{margin:0 0 8px;color:var(--teal);font-size:11px;font-weight:800;letter-spacing:0;text-transform:uppercase}}
+h1{{font-size:34px;line-height:1.08;margin:0 0 10px;letter-spacing:0}} h2{{font-size:22px;margin:0}} h3{{font-size:16px;margin:18px 0 10px}}
+.subtitle{{color:var(--muted);max-width:820px;margin:0;font-size:15px}}
+.score-card{{background:#17202a;color:white;border-radius:10px;padding:24px;box-shadow:var(--shadow);display:flex;flex-direction:column;justify-content:space-between}}
+.score-ring{{width:126px;height:126px;border-radius:50%;display:grid;place-items:center;margin:auto;background:conic-gradient(var(--score-color) var(--score-angle),rgba(255,255,255,.16) 0);position:relative}}
+.score-ring:after{{content:"";position:absolute;inset:12px;border-radius:50%;background:#17202a}} .score-ring strong{{position:relative;z-index:1;font-size:34px}} .score-label{{text-align:center;margin-top:14px;font-weight:800}}
+.metric-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}} .metric-grid.compact{{grid-template-columns:repeat(4,1fr);margin:12px 0}}
+.metric{{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 15px;min-height:86px}} .metric span,.model-summary span{{display:block;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase}} .metric strong{{display:block;margin-top:7px;font-size:24px}}
+.type-row{{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}} .type-pill{{border:1px solid var(--line);background:#f9fbfd;border-radius:999px;padding:7px 12px;display:flex;gap:8px;align-items:center}} .type-pill span{{color:var(--muted);font-size:12px}} .type-pill strong{{font-size:13px}}
+.section{{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;margin-top:18px;box-shadow:0 10px 28px rgba(31,45,61,.06)}} .section-head{{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}}
+.two-col{{display:grid;grid-template-columns:1fr 1fr;gap:18px}} .insight-list,.recommendations{{margin:0;padding:0;list-style:none}} .insight-list li,.recommendations li{{border-top:1px solid var(--line);padding:12px 0;color:#263443}} .insight-list li:first-child,.recommendations li:first-child{{border-top:0}}
+table{{border-collapse:separate;border-spacing:0;width:100%;overflow:hidden;border:1px solid var(--line);border-radius:8px;background:white}} th{{background:#f3f6f9;color:#455363;text-transform:uppercase;font-size:11px;letter-spacing:0}} td,th{{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}} tr:last-child td{{border-bottom:0}} .empty{{color:var(--muted);text-align:center;padding:22px}}
+.bar{{display:block;height:8px;background:#e9eef4;border-radius:99px;overflow:hidden;min-width:110px}} .bar span{{display:block;height:100%;border-radius:inherit}}
+.badge{{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800;background:#edf1f5;color:#455363}} .badge.good{{background:#e7f7ef;color:#197047}} .badge.warn{{background:#fff2df;color:#98530b}} .badge.bad{{background:#ffe8e8;color:#a83131}} .badge.info{{background:#e9f3ff;color:#3156aa}}
+.signals{{display:grid;grid-template-columns:1fr 1fr;gap:16px}} .signals ul{{margin:0;padding-left:18px;color:#334252}} .signals li{{margin:8px 0}}
+.model-summary{{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}} .model-summary div{{border:1px solid var(--line);background:#fbfcfe;border-radius:8px;padding:12px}} .model-summary strong{{display:block;margin-top:6px;font-size:17px}}
+.comparison-block{{border-top:1px solid var(--line);padding-top:14px;margin-top:12px}} .comparison-block:first-of-type{{border-top:0;padding-top:0}} .change-list{{display:grid;grid-template-columns:1fr 1fr;gap:10px;color:#334252}} .change-list p{{background:#f7f9fb;border-radius:8px;padding:10px;margin:0}}
+.note{{color:var(--muted);font-size:12px;margin:12px 0 0}} .footer{{color:var(--muted);font-size:12px;text-align:center;margin-top:22px}}
+@media(max-width:860px){{.page{{padding:18px}}.hero,.two-col,.signals{{grid-template-columns:1fr}}.metric-grid,.metric-grid.compact,.model-summary{{grid-template-columns:repeat(2,1fr)}}h1{{font-size:28px}}}}
+@media print{{body{{background:white}}.page{{max-width:none;padding:0}}.section,.hero-main,.score-card,.metric{{box-shadow:none}}}}
 </style></head>
 <body>
-<h1>{esc(dataset.get('filename', 'Dataset'))}</h1>
-<p class="muted">Generated by Dataflow local EDA pipeline.</p>
-<div class="grid">
-<div class="card"><div class="muted">Rows</div><div class="value">{dataset.get('shape', {}).get('rows')}</div></div>
-<div class="card"><div class="muted">Columns</div><div class="value">{dataset.get('shape', {}).get('columns')}</div></div>
-<div class="card"><div class="muted">Skewed numerics</div><div class="value">{eda.get('numeric_profile', {}).get('skewed_count', 0)}</div></div>
-<div class="card"><div class="muted">High-cardinality categoricals</div><div class="value">{eda.get('categorical_profile', {}).get('high_cardinality_count', 0)}</div></div>
-</div>
-<h2>Key Observations</h2><ul>{obs}</ul>
-<h2>Missingness</h2><table><tr><th>Column</th><th>Null %</th><th>Null count</th></tr>{null_rows}</table>
-<h2>Numeric Triage</h2><table><tr><th>Column</th><th>Skewness</th><th>Outliers</th><th>Outlier %</th></tr>{num_rows}</table>
-<h2>Categorical Triage</h2><table><tr><th>Column</th><th>Unique</th><th>Top share</th><th>Encoding signal</th></tr>{cat_rows}</table>
+<main class="page">
+<header class="hero">
+  <div class="hero-main">
+    <p class="eyebrow">Dataflow analyst report</p>
+    <h1>{esc(dataset.get('filename', 'Dataset'))}</h1>
+    <p class="subtitle">A decision-ready EDA summary focused on data quality, modelling readiness, feature risk, and the next analysis moves a senior analyst would check before presenting or training models.</p>
+    <div class="type-row">{type_cards}</div>
+  </div>
+  <aside class="score-card" style="--score-angle:{health_score * 3.6:.1f}deg;--score-color:var(--{'success' if health_tone == 'good' else 'warning' if health_tone == 'warn' else 'danger'});">
+    <div class="score-ring"><strong>{health_score}</strong></div>
+    <div class="score-label">{esc(health_label)}</div>
+  </aside>
+</header>
+
+<section class="metric-grid">
+  <div class="metric"><span>Rows</span><strong>{fmt(rows)}</strong></div>
+  <div class="metric"><span>Columns</span><strong>{fmt(cols)}</strong></div>
+  <div class="metric"><span>Missing cells</span><strong>{pct(missing_pct)}</strong></div>
+  <div class="metric"><span>Duplicate rows</span><strong>{fmt(duplicate_rows)}</strong></div>
+</section>
+
+<section class="section two-col">
+  <div>
+    <p class="eyebrow">Executive summary</p>
+    <h2>What Stands Out</h2>
+    <ul class="insight-list">{obs_cards}</ul>
+  </div>
+  <div>
+    <p class="eyebrow">Analyst actions</p>
+    <h2>Recommended Next Steps</h2>
+    <ul class="recommendations">{rec_items}</ul>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head"><div><p class="eyebrow">Dataset intelligence</p><h2>Dynamic Signals</h2></div>{badge(health_label, health_tone)}</div>
+  <div class="signals">
+    <ul>{signal_items}</ul>
+    <div class="metric-grid compact">
+      <div class="metric"><span>Skewed numerics</span><strong>{fmt(skewed_cols)}</strong></div>
+      <div class="metric"><span>Outlier columns</span><strong>{fmt(outlier_cols)}</strong></div>
+      <div class="metric"><span>High-cardinality</span><strong>{fmt(high_card_cols)}</strong></div>
+      <div class="metric"><span>Imbalanced categoricals</span><strong>{fmt(imbalanced_cols)}</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head"><div><p class="eyebrow">Quality profile</p><h2>Missingness</h2></div>{badge('Clean' if not nulls else 'Review', 'good' if not nulls else 'warn')}</div>
+  <table><tr><th>Column</th><th>Null %</th><th>Null count</th><th>Scale</th></tr>{null_rows}</table>
+  <h3>Missingness Co-occurrence</h3>
+  <table><tr><th>Column A</th><th>Column B</th><th>Actual overlap</th><th>Expected overlap</th><th>Lift</th></tr>{missing_pair_rows}</table>
+</section>
+
+<section class="section">
+  <div class="section-head"><div><p class="eyebrow">Feature triage</p><h2>Numeric Columns</h2></div>{badge(f'{outlier_cols} with outliers', 'warn' if outlier_cols else 'good')}</div>
+  <table><tr><th>Column</th><th>Skewness</th><th>Outliers</th><th>Outlier %</th><th>Mean</th><th>Std dev</th></tr>{num_rows}</table>
+</section>
+
+<section class="section">
+  <div class="section-head"><div><p class="eyebrow">Feature triage</p><h2>Categorical Columns</h2></div>{badge(f'{high_card_cols} high-cardinality', 'warn' if high_card_cols else 'good')}</div>
+  <table><tr><th>Column</th><th>Unique</th><th>Top share</th><th>Dominance</th><th>Encoding signal</th></tr>{cat_rows}</table>
+</section>
+
+<section class="section">
+  <div class="section-head"><div><p class="eyebrow">Relationships</p><h2>Correlation Watchlist</h2></div>{badge(corr.get('method', 'pearson'), 'info') if corr else ''}</div>
+  <table><tr><th>Column A</th><th>Column B</th><th>Correlation</th><th>Strength</th><th>Label</th></tr>{corr_rows}</table>
+</section>
+
 {comparison_html}
-{f'<h2>Model Importance: {esc(target)}</h2><p class="muted">{esc(model.get("task"))} baseline {esc(model.get("metric"))}: {esc(model.get("baseline_score"))}</p><table><tr><th>Feature</th><th>Permutation importance</th><th>Coefficient importance</th></tr>{model_rows}</table>' if model_rows else ''}
+{model_section}
+<p class="footer">Generated by Dataflow. Treat this as analyst triage: validate findings against business context before production decisions.</p>
+</main>
 </body></html>"""
