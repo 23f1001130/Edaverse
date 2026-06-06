@@ -451,16 +451,14 @@ async def chat_with_dataset(dataset_id: str, req: ChatRequest):
         if not status["running"]:
             raise HTTPException(status_code=503, detail="Ollama is not running")
 
-    # ── Smart context compression ──────────────────────────────────────────
-    # First message: send full schema so model knows the dataset
-    # Provider switch: send compressed workspace summary (10x cheaper)
-    # Subsequent messages: no system re-injection, just the conversation
-    if req.switched_provider:
-        system = _workspace_summary(dataset)
-    elif req.is_first_message:
+    # Always inject dataset context so the model never loses awareness of the
+    # dataset — deterministic answers don't consume the system prompt, so
+    # skipping it on subsequent turns causes the model to deny knowing the data.
+    # Use the compressed summary after the first exchange to save tokens.
+    if req.is_first_message or req.switched_provider:
         system = _full_system(dataset)
     else:
-        system = None  # model already has context from earlier in this session
+        system = _workspace_summary(dataset)
 
     messages = []
     if system:
