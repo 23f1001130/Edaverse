@@ -2,7 +2,7 @@
 
 <br/>
 
-<img src="https://placehold.co/72x72/0d1117/14b8a6?text=⬡&font=montserrat" alt="edaverse" width="72" height="72" style="border-radius:16px"/>
+<img src="https://img.shields.io/badge/%E2%AC%A1-edaverse-14b8a6?style=for-the-badge" alt="edaverse" height="40"/>
 
 <h1>edaverse</h1>
 
@@ -26,7 +26,7 @@ Upload a CSV or Excel file and get a complete analysis, cleaning report,<br/>and
 
 <br/>
 
-![edaverse Dashboard](doc/Eda%20Stats.png)
+![edaverse Dashboard](doc/landing%20page.png)
 
 <br/>
 
@@ -191,7 +191,7 @@ Suggestions are grouped by category and can be applied selectively:
 |---|---|
 | ![Drag & Drop Upload](doc/drag%20%26%20drop.png) | ![EDA Stats](doc/Eda%20Stats.png) |
 
-| Distributions & Graphs | Correlation Heatmap |
+| Correlations Graphs | Correlation Heatmap |
 |---|---|
 | ![Graphs](doc/graphs.png) | ![Heatmap](doc/HeatMap.png) |
 
