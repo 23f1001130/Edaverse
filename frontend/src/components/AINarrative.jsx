@@ -228,7 +228,7 @@ export default function AINarrative({ datasetId, filename, schema = [], onClose 
                 )}
               </div>
               <span className="nar-key-note nar-key-warn">
-                Your API key is stored in this browser only and sent to the backend only when making AI requests. Do not use on shared computers.
+                Stored in your browser only. Never saved on our servers.
               </span>
             </div>
           )}
