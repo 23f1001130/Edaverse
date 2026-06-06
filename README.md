@@ -22,7 +22,7 @@ Upload a CSV or Excel file and get a complete analysis, cleaning report,<br/>and
 
 <br/>
 
-[**Live Demo**](#) &nbsp;·&nbsp; [**Report a Bug**](../../issues) &nbsp;·&nbsp; [**Request a Feature**](../../issues)
+[**Live Demo**](https://edaverse.app/) &nbsp;·&nbsp; [**Report a Bug**](../../issues) &nbsp;·&nbsp; [**Request a Feature**](../../issues)
 
 <br/>
 
