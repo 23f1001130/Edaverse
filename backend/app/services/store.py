@@ -291,7 +291,8 @@ def list_datasets(user_id: str | None = None, include_demo: bool = False,
     return summaries
 
 
-def get_dataset(dataset_id: str, user_id: str | None | object = _UNSET) -> dict | None:
+def _fetch_dataset_record(dataset_id: str) -> dict | None:
+    """Read dataset record from storage with no expiry or ownership checks."""
     data = None
     collection = _mongo_collection()
     if collection is not None:
@@ -300,9 +301,13 @@ def get_dataset(dataset_id: str, user_id: str | None | object = _UNSET) -> dict 
             data = _record_from_mongo(doc) if doc else None
         except (PyMongoError, json.JSONDecodeError, TypeError) as exc:
             logger.warning("MongoDB dataset lookup failed: %s: %s", type(exc).__name__, exc)
-            data = None
     if data is None:
         data = _read_local_record(dataset_id)
+    return data
+
+
+def get_dataset(dataset_id: str, user_id: str | None | object = _UNSET) -> dict | None:
+    data = _fetch_dataset_record(dataset_id)
     if data is None:
         return None
     expires = _parse_dt(data.get("expires_at"))
@@ -315,7 +320,7 @@ def get_dataset(dataset_id: str, user_id: str | None | object = _UNSET) -> dict 
 
 
 def delete_dataset(dataset_id: str, user_id: str | None = None) -> bool:
-    data = get_dataset(dataset_id)
+    data = _fetch_dataset_record(dataset_id)
     if data is None:
         return False
     if not _owned_by(data, user_id):
