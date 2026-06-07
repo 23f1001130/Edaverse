@@ -15,7 +15,7 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     target: 'es2020',
-    minify: 'esbuild',
+    minify: 'oxc',
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
