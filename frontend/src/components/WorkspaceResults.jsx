@@ -1,17 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react'
-import OverviewTab from './tabs/OverviewTab.jsx'
-import DistributionsTab from './tabs/DistributionsTab.jsx'
-import CorrelationsTab from './tabs/CorrelationsTab.jsx'
-import TargetTab from './tabs/TargetTab.jsx'
-import CleaningTab from './tabs/CleaningTab.jsx'
-import FeatureEngineeringTab from './tabs/FeatureEngineeringTab.jsx'
-import StepsTab from './tabs/StepsTab.jsx'
-import AINarrative from './AINarrative.jsx'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
 import HeaderPicker from './HeaderPicker.jsx'
-import WorkspaceTour from './WorkspaceTour.jsx'
 import ToastContainer from './ToastContainer.jsx'
 import { fireToast, getSetting, TOUR_REPLAY_EVENT } from '../services/toast.js'
 import './WorkspaceResults.css'
+
+const OverviewTab           = React.lazy(() => import('./tabs/OverviewTab.jsx'))
+const DistributionsTab      = React.lazy(() => import('./tabs/DistributionsTab.jsx'))
+const CorrelationsTab       = React.lazy(() => import('./tabs/CorrelationsTab.jsx'))
+const TargetTab             = React.lazy(() => import('./tabs/TargetTab.jsx'))
+const CleaningTab           = React.lazy(() => import('./tabs/CleaningTab.jsx'))
+const FeatureEngineeringTab = React.lazy(() => import('./tabs/FeatureEngineeringTab.jsx'))
+const StepsTab              = React.lazy(() => import('./tabs/StepsTab.jsx'))
+const AINarrative           = React.lazy(() => import('./AINarrative.jsx'))
+const WorkspaceTour         = React.lazy(() => import('./WorkspaceTour.jsx'))
 
 const BASE = import.meta.env.VITE_API_URL || ''
 
@@ -25,7 +26,7 @@ async function getAuthHeaders() {
   return {}
 }
 
-function ColumnRow({ col, active, onClick }) {
+const ColumnRow = React.memo(function ColumnRow({ col, active, onClick }) {
   const isNum = ['integer', 'float'].includes(col.type)
   const pct = col.null_pct || 0
   const barColor = pct === 0 ? 'var(--green)' : pct < 10 ? 'var(--amber)' : 'var(--red)'
@@ -43,7 +44,7 @@ function ColumnRow({ col, active, onClick }) {
       </div>
     </button>
   )
-}
+})
 
 export default function WorkspaceResults({ data: initialData, onReparse, reparsing, onReset, themeControl }) {
   const [data, setData] = useState(initialData)
@@ -164,7 +165,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
 
   return (
     <div className="wr">
-      {showTour && <WorkspaceTour onDone={() => setShowTour(false)} />}
+      {showTour && <Suspense fallback={null}><WorkspaceTour onDone={() => setShowTour(false)} /></Suspense>}
       <ToastContainer />
       <div className="wr-topbar" data-tour="topbar">
         <div className="wr-breadcrumb">
@@ -303,22 +304,26 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
                 <div className="wr-loading-stage">{edaStage.label}</div>
               </div>
             ) : (
-              <>
-                {tab === 'Overview' && <OverviewTab data={data} eda={eda} />}
-                {tab === 'Distributions' && <DistributionsTab data={data} eda={eda} activeCol={activeCol} setActiveCol={setActiveCol} />}
-                {tab === 'Correlations' && <CorrelationsTab eda={eda} />}
-                {tab === 'Target Analysis' && <TargetTab data={data} eda={eda} />}
-                {tab === 'Cleaning Report' && <CleaningTab data={data} onDataUpdate={handleDataUpdate} />}
-                {tab === 'Feature Engineering' && <FeatureEngineeringTab data={data} onDataUpdate={handleDataUpdate} />}
-                {tab === 'Steps Applied' && <StepsTab data={data} />}
-              </>
+              <Suspense fallback={<div className="wr-loading"><div className="wr-loading-stage">Loading…</div></div>}>
+                <>
+                  {tab === 'Overview' && <OverviewTab data={data} eda={eda} />}
+                  {tab === 'Distributions' && <DistributionsTab data={data} eda={eda} activeCol={activeCol} setActiveCol={setActiveCol} />}
+                  {tab === 'Correlations' && <CorrelationsTab eda={eda} />}
+                  {tab === 'Target Analysis' && <TargetTab data={data} eda={eda} />}
+                  {tab === 'Cleaning Report' && <CleaningTab data={data} onDataUpdate={handleDataUpdate} />}
+                  {tab === 'Feature Engineering' && <FeatureEngineeringTab data={data} onDataUpdate={handleDataUpdate} />}
+                  {tab === 'Steps Applied' && <StepsTab data={data} />}
+                </>
+              </Suspense>
             )}
           </div>
         </main>
       </div>
 
       {narrativeOpen && (
-        <AINarrative datasetId={data.id} filename={data.filename} schema={data.schema || []} onClose={() => setNarrativeOpen(false)} />
+        <Suspense fallback={null}>
+          <AINarrative datasetId={data.id} filename={data.filename} schema={data.schema || []} onClose={() => setNarrativeOpen(false)} />
+        </Suspense>
       )}
     </div>
   )

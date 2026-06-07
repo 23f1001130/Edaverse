@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { apiFetch } from '../services/api.js'
 import './AINarrative.css'
 
 const BASE = import.meta.env.VITE_API_URL || ''
@@ -49,7 +50,7 @@ export default function AINarrative({ datasetId, filename, schema = [], onClose 
   const isFirst = sessions[provider]?.isFirst !== false  // default true
 
   useEffect(() => {
-    fetch(`${BASE}/api/ai/status`).then(r=>r.json()).then(s => {
+    apiFetch(`${BASE}/api/ai/status`).then(r=>r.json()).then(s => {
       setStatus(s); if (s.active_model) setOllamaModel(s.active_model)
     }).catch(()=>setStatus({running:false}))
   }, [])

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Uploader from '../components/Uploader.jsx'
 import WorkspaceResults from '../components/WorkspaceResults.jsx'
 import HistoryPanel from '../components/HistoryPanel.jsx'
-import { fetchDataset, uploadFile, loadDemo } from '../services/api.js'
+import { fetchDataset, uploadFile, loadDemo, apiFetch } from '../services/api.js'
 import { getSetting, saveSettings, TOUR_REPLAY_EVENT } from '../services/toast.js'
 import './Workspace.css'
 
@@ -241,7 +241,7 @@ function SettingsPanel({ onClose, onNavUpload, themeControl }) {
   const [autoSelClean,  setAutoSelClean]  = useState(() => getSetting('cleaning.auto_select_all', true))
 
   useEffect(() => {
-    fetch(`${BASE}/health`).then(r => r.ok ? r.json() : null).then(setHealth).catch(() => {})
+    apiFetch(`${BASE}/health`).then(r => r.ok ? r.json() : null).then(setHealth).catch(() => {})
   }, [])
 
   function set(path, value) {

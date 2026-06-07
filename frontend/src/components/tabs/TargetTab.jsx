@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
-import { getAuthHeaders } from '../../services/api.js'
+import { apiFetch } from '../../services/api.js'
 import './tabs.css'
 
 const BASE = import.meta.env.VITE_API_URL || ''
@@ -180,20 +180,18 @@ export default function TargetTab({ data }) {
     setError(null)
     setAnalysis(null)
     setImportance(null)
-    getAuthHeaders().then(headers => {
-      fetch(`${BASE}/api/datasets/${data.id}/target-analysis?target=${encodeURIComponent(target)}`, { headers })
-        .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(new Error(d.detail || 'Target analysis failed'))))
-        .then(d => { if (!cancelled) setAnalysis(d) })
-        .catch(e => { if (!cancelled) setError(e.message) })
-        .finally(() => { if (!cancelled) setLoading(false) })
+    apiFetch(`${BASE}/api/datasets/${data.id}/target-analysis?target=${encodeURIComponent(target)}`)
+      .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(new Error(d.detail || 'Target analysis failed'))))
+      .then(d => { if (!cancelled) setAnalysis(d) })
+      .catch(e => { if (!cancelled) setError(e.message) })
+      .finally(() => { if (!cancelled) setLoading(false) })
 
-      setImportanceLoading(true)
-      fetch(`${BASE}/api/datasets/${data.id}/model-importance?target=${encodeURIComponent(target)}`, { headers })
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (!cancelled) setImportance(d) })
-        .catch(() => {})
-        .finally(() => { if (!cancelled) setImportanceLoading(false) })
-    })
+    setImportanceLoading(true)
+    apiFetch(`${BASE}/api/datasets/${data.id}/model-importance?target=${encodeURIComponent(target)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!cancelled) setImportance(d) })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setImportanceLoading(false) })
     return () => { cancelled = true }
   }, [target, data.id])
 

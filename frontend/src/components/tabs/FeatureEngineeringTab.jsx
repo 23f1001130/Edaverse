@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getAuthHeaders } from '../../services/api.js'
+import { getAuthHeaders, apiFetch } from '../../services/api.js'
 import { fireToast, getSetting } from '../../services/toast.js'
 import './tabs.css'
 
@@ -51,8 +51,7 @@ export default function FeatureEngineeringTab({ data, onDataUpdate }) {
     setSuggestions(null)
 
     const qs = target ? `?target=${encodeURIComponent(target)}` : ''
-    getAuthHeaders().then(headers =>
-    fetch(`${BASE}/api/datasets/${data.id}/feature-suggestions${qs}`, { headers })
+    apiFetch(`${BASE}/api/datasets/${data.id}/feature-suggestions${qs}`)
       .then(r => r.json())
       .then(d => {
         if (cancelled) return
@@ -65,7 +64,6 @@ export default function FeatureEngineeringTab({ data, onDataUpdate }) {
         setLoading(false)
       })
       .catch(() => { if (!cancelled) setLoading(false) })
-    )
 
     return () => { cancelled = true }
   }, [scanKey, target])   // scanKey + target control suggestion refresh

@@ -14,5 +14,18 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-  }
+    target: 'es2020',
+    minify: 'esbuild',
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          recharts: ['recharts'],
+          clerk: ['@clerk/clerk-react'],
+          sentry: ['@sentry/react'],
+          vendor: ['react', 'react-dom'],
+        },
+      },
+    },
+  },
 })

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getAuthHeaders } from '../../services/api.js'
+import { getAuthHeaders, apiFetch } from '../../services/api.js'
 import { fireToast, getSetting } from '../../services/toast.js'
 import './tabs.css'
 
@@ -40,8 +40,7 @@ export default function CleaningTab({ data, onDataUpdate }) {
     setResult(null)
     setSuggestions(null)
 
-    getAuthHeaders().then(headers =>
-    fetch(`${BASE}/api/datasets/${data.id}/suggestions`, { headers })
+    apiFetch(`${BASE}/api/datasets/${data.id}/suggestions`)
       .then(r => r.json())
       .then(d => {
         if (cancelled) return
@@ -53,7 +52,6 @@ export default function CleaningTab({ data, onDataUpdate }) {
         setLoading(false)
       })
       .catch(() => { if (!cancelled) setLoading(false) })
-    )
 
     return () => { cancelled = true }
   }, [scanKey])   // scanKey is the sole trigger — data.id never changes for the same dataset

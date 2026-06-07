@@ -81,8 +81,10 @@ app.include_router(features.router, prefix="/api")
 
 
 @app.on_event("startup")
-def cleanup_anonymous_datasets_on_startup():
-    cleanup_expired_datasets()
+async def cleanup_anonymous_datasets_on_startup():
+    import asyncio
+    loop = asyncio.get_running_loop()
+    loop.run_in_executor(None, cleanup_expired_datasets)
 
 @app.get("/health")
 def health():

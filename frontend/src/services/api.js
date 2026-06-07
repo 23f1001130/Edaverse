@@ -72,3 +72,28 @@ export async function fetchConfig() {
   const res = await axios.get(`${BASE}/api/config`, { headers })
   return res.data
 }
+
+// Wraps fetch() with automatic auth headers and retry-on-failure for GET requests.
+// Use for regular (non-streaming) API calls instead of bare fetch().
+export async function apiFetch(url, options = {}) {
+  const authHeaders = await getAuthHeaders()
+  const merged = { ...options, headers: { ...authHeaders, ...options.headers } }
+  const isRead = !options.method || options.method.toUpperCase() === 'GET'
+  const maxAttempts = isRead ? 3 : 1
+  let lastErr
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 600))
+    try {
+      const res = await fetch(url, merged)
+      if (isRead && !res.ok && res.status >= 500 && attempt < maxAttempts - 1) {
+        lastErr = new Error(`HTTP ${res.status}`)
+        continue
+      }
+      return res
+    } catch (err) {
+      if (err.name === 'AbortError') throw err
+      lastErr = err
+    }
+  }
+  throw lastErr
+}

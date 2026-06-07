@@ -238,21 +238,39 @@ def storage_info() -> dict:
 def list_datasets(user_id: str | None = None, include_demo: bool = False,
                   limit: int | None = None, offset: int = 0) -> list[dict]:
     cleanup_expired_datasets()
-    records = []
+    summaries = []
     mongo_ok = False
     collection = _mongo_collection()
     if collection is not None:
         try:
             query = {"owner_id": user_id} if user_id else {"owner_id": None}
-            for doc in collection.find(query).sort("saved_at", -1):
+            # Push pagination to MongoDB — avoids fetching all records into Python
+            cursor = collection.find(query).sort("saved_at", -1).skip(offset)
+            if limit is not None:
+                cursor = cursor.limit(limit)
+            for doc in cursor:
                 data = _record_from_mongo(doc)
-                if data:
-                    records.append(data)
+                if not data:
+                    continue
+                if data.get("is_demo") and not include_demo:
+                    continue
+                summaries.append({
+                    "id": data["id"],
+                    "filename": data.get("filename"),
+                    "saved_at": data.get("saved_at"),
+                    "owner_id": data.get("owner_id"),
+                    "access": data.get("access", "anonymous"),
+                    "expires_at": data.get("expires_at"),
+                    "is_demo": data.get("is_demo", False),
+                    "shape": data.get("shape"),
+                    "encoding": data.get("encoding"),
+                    "warnings": data.get("warnings", []),
+                })
             mongo_ok = True
         except (PyMongoError, json.JSONDecodeError, TypeError) as exc:
             logger.warning("MongoDB dataset list failed: %s: %s", type(exc).__name__, exc)
-            records = []
     if not mongo_ok:
+        records = []
         for path in sorted(DATASETS_DIR.glob("*.json"), key=os.path.getmtime, reverse=True):
             try:
                 data = _read_local_record(path.stem)
@@ -261,33 +279,29 @@ def list_datasets(user_id: str | None = None, include_demo: bool = False,
             except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
                 logger.warning("Local dataset list skipped %s: %s: %s", path, type(exc).__name__, exc)
                 continue
-    summaries = []
-    for data in records:
-        try:
-            if not _owned_by(data, user_id):
+        for data in records:
+            try:
+                if data.get("is_demo") and not include_demo:
+                    continue
+                summaries.append({
+                    "id": data["id"],
+                    "filename": data.get("filename"),
+                    "saved_at": data.get("saved_at"),
+                    "owner_id": data.get("owner_id"),
+                    "access": data.get("access", "anonymous"),
+                    "expires_at": data.get("expires_at"),
+                    "is_demo": data.get("is_demo", False),
+                    "shape": data.get("shape"),
+                    "encoding": data.get("encoding"),
+                    "warnings": data.get("warnings", []),
+                })
+            except (KeyError, TypeError, ValueError) as exc:
+                logger.warning("Dataset summary skipped: %s: %s", type(exc).__name__, exc)
                 continue
-            # Exclude demo datasets from the history list unless explicitly requested
-            if data.get("is_demo") and not include_demo:
-                continue
-            summaries.append({
-                "id": data["id"],
-                "filename": data.get("filename"),
-                "saved_at": data.get("saved_at"),
-                "owner_id": data.get("owner_id"),
-                "access": data.get("access", "anonymous"),
-                "expires_at": data.get("expires_at"),
-                "is_demo": data.get("is_demo", False),
-                "shape": data.get("shape"),
-                "encoding": data.get("encoding"),
-                "warnings": data.get("warnings", []),
-            })
-        except (KeyError, TypeError, ValueError) as exc:
-            logger.warning("Dataset summary skipped: %s: %s", type(exc).__name__, exc)
-            continue
-    if offset:
-        summaries = summaries[offset:]
-    if limit is not None:
-        summaries = summaries[:limit]
+        if offset:
+            summaries = summaries[offset:]
+        if limit is not None:
+            summaries = summaries[:limit]
     return summaries
 
 
