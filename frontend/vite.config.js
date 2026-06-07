@@ -19,11 +19,11 @@ export default defineConfig({
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
-        manualChunks: {
-          recharts: ['recharts'],
-          clerk: ['@clerk/clerk-react'],
-          sentry: ['@sentry/react'],
-          vendor: ['react', 'react-dom'],
+        manualChunks(id) {
+          if (id.includes('node_modules/recharts')) return 'recharts'
+          if (id.includes('node_modules/@clerk')) return 'clerk'
+          if (id.includes('node_modules/@sentry')) return 'sentry'
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) return 'vendor'
         },
       },
     },
