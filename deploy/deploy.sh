@@ -11,14 +11,15 @@ cd /var/www/dataflow/backend
 source venv/bin/activate
 pip install -r requirements.txt --quiet
 
-# Build frontend
+# Build frontend (Doppler injects VITE_CLERK_PUBLISHABLE_KEY and other secrets)
 cd /var/www/dataflow/frontend
 npm install --legacy-peer-deps --quiet
 FRONTEND_APP_URL="${DATAFLOW_APP_URL:-${VITE_APP_URL:-}}"
 if [ -z "$FRONTEND_APP_URL" ]; then
   echo "Warning: DATAFLOW_APP_URL/VITE_APP_URL is not set. Clerk emails and redirects may use the current host or droplet IP."
 fi
-VITE_API_URL="" VITE_APP_URL="$FRONTEND_APP_URL" npm run build
+doppler run -- env | grep "^VITE_" > /dev/null 2>&1 || { echo "ERROR: Doppler not configured or missing VITE_ vars"; exit 1; }
+doppler run -- sh -c "VITE_API_URL=\"\" VITE_APP_URL=\"$FRONTEND_APP_URL\" npm run build"
 
 # Copy frontend build to nginx directory
 cp -r dist/* /var/www/html/dataflow/
