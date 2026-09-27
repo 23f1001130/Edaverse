@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: edaverse-api
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: AUTH_TRUST_UNVERIFIED_JWT
+        value: "false"
+      - key: TRUST_PROXY_AUTH_HEADERS
+        value: "false"
+      - key: MAX_UPLOAD_MB
+        value: "100"
+      - key: LARGE_FILE_THRESHOLD_MB
+        value: "50"
+      - key: EDA_STREAM_TIMEOUT_SECS
+        value: "300"
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CLERK_ISSUER_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
