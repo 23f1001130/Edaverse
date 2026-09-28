@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { uploadFile } from '../services/api.js'
+import { uploadFile, fetchConfig } from '../services/api.js'
+import { fireToast } from '../services/toast.js'
 import './Uploader.css'
 
 const ACCEPTED = {
@@ -52,6 +53,17 @@ function UploadIcon() {
 export default function Uploader({ onResult, onError, loading, setLoading }) {
   const [filename, setFilename] = useState('')
   const [stepIndex, setStepIndex] = useState(0)
+  const [maxUploadMb, setMaxUploadMb] = useState(100)
+  const [largeFileThresholdMb, setLargeFileThresholdMb] = useState(50)
+
+  useEffect(() => {
+    fetchConfig()
+      .then(cfg => {
+        if (cfg.max_upload_mb) setMaxUploadMb(cfg.max_upload_mb)
+        if (cfg.large_file_threshold_mb) setLargeFileThresholdMb(cfg.large_file_threshold_mb)
+      })
+      .catch(() => {}) // keep the sensible defaults if config isn't reachable yet
+  }, [])
 
   useEffect(() => {
     if (!loading) { setStepIndex(0); return }
@@ -64,6 +76,16 @@ export default function Uploader({ onResult, onError, loading, setLoading }) {
   const onDrop = useCallback(async (accepted) => {
     if (!accepted.length) return
     const file = accepted[0]
+    const fileMb = file.size / (1024 * 1024)
+
+    if (fileMb > maxUploadMb) {
+      onError(`File is ${fileMb.toFixed(1)}MB, which is over the ${maxUploadMb}MB limit.`)
+      return
+    }
+    if (fileMb > largeFileThresholdMb) {
+      fireToast(`Large file (${fileMb.toFixed(0)}MB) — this may take longer to process than usual.`, 'info')
+    }
+
     setFilename(file.name)
     setLoading(true)
     try {
@@ -75,7 +97,7 @@ export default function Uploader({ onResult, onError, loading, setLoading }) {
     } finally {
       setLoading(false)
     }
-  }, [onResult, onError, setLoading])
+  }, [onResult, onError, setLoading, maxUploadMb, largeFileThresholdMb])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop, accept: ACCEPTED, maxFiles: 1, disabled: loading,
@@ -126,7 +148,7 @@ export default function Uploader({ onResult, onError, loading, setLoading }) {
         <div className="up-zone-icon"><UploadIcon /></div>
         <div className="up-zone-main">Drop a CSV, Excel, JSON, TSV, or Parquet file</div>
         <div className="up-zone-sub">or click anywhere in this area to browse</div>
-        <div className="up-zone-limit">Maximum file size: 100 MB</div>
+        <div className="up-zone-limit">Maximum file size: {maxUploadMb} MB</div>
       </div>
 
       <div className="up-types">
