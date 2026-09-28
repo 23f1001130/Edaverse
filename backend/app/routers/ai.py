@@ -2,7 +2,7 @@ import json
 import hashlib
 import math
 import re
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from app.services.ollama import get_ollama_status, generate_insight
@@ -10,6 +10,7 @@ from app.services.ai_providers import stream_ai, humanize_error, DEFAULT_MODELS
 from app.services.store import get_dataset, save_insight, get_cached_insight
 from app.services.eda import _load_df as _load_eda_df
 from app.services.ai_dataframe_exec import execute_pandas_code, is_dataframe_question
+from app.services.limiter import limiter
 
 router = APIRouter()
 
@@ -436,12 +437,14 @@ Rules:
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("/ai/status")
-async def ollama_status():
+@limiter.limit("30/minute")
+async def ollama_status(request: Request):
     return await get_ollama_status()
 
 
 @router.post("/datasets/{dataset_id}/insight")
-async def generate_dataset_insight(dataset_id: str, req: InsightRequest = InsightRequest()):
+@limiter.limit("10/minute")
+async def generate_dataset_insight(request: Request, dataset_id: str, req: InsightRequest = InsightRequest()):
     dataset = get_dataset(dataset_id)
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
@@ -489,7 +492,8 @@ async def generate_dataset_insight(dataset_id: str, req: InsightRequest = Insigh
 
 
 @router.post("/datasets/{dataset_id}/chat")
-async def chat_with_dataset(dataset_id: str, req: ChatRequest):
+@limiter.limit("15/minute")
+async def chat_with_dataset(request: Request, dataset_id: str, req: ChatRequest):
     dataset = get_dataset(dataset_id)
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")

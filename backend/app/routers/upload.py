@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Request
 from typing import Optional
 from app.services.parser import parse_file
@@ -6,6 +7,13 @@ from app.services.auth import get_request_user_id
 from app.services.limiter import limiter
 
 router = APIRouter()
+
+
+def _max_upload_bytes() -> int:
+    try:
+        return max(int(os.getenv("MAX_UPLOAD_MB", "100")), 1) * 1024 * 1024
+    except (TypeError, ValueError):
+        return 100 * 1024 * 1024
 
 @router.post("/upload")
 @limiter.limit("10/minute")
@@ -22,8 +30,9 @@ async def upload_file(
     if len(contents) == 0:
         raise HTTPException(status_code=400, detail="File is empty")
 
-    if len(contents) > 100 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="File too large (max 100MB)")
+    max_bytes = _max_upload_bytes()
+    if len(contents) > max_bytes:
+        raise HTTPException(status_code=413, detail=f"File too large (max {max_bytes // (1024 * 1024)}MB)")
 
     # Coerce header_row to int if provided
     hr = None
