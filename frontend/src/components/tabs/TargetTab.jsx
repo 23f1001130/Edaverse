@@ -172,7 +172,21 @@ export default function TargetTab({ data }) {
   const [loading, setLoading] = useState(false)
   const [importanceLoading, setImportanceLoading] = useState(false)
   const [error, setError] = useState(null)
-  const candidates = data.schema.map(c => c.name)
+  const [colSearch, setColSearch] = useState('')
+
+  const TYPE_GROUPS = [
+    { label: 'Numeric', types: ['integer', 'float'] },
+    { label: 'Categorical', types: ['categorical', 'text', 'boolean'] },
+    { label: 'Datetime', types: ['datetime'] },
+  ]
+  const query = colSearch.trim().toLowerCase()
+  const grouped = TYPE_GROUPS.map(g => ({
+    label: g.label,
+    columns: data.schema.filter(c => g.types.includes(c.type) && c.name.toLowerCase().includes(query)),
+  })).filter(g => g.columns.length > 0)
+  const groupedNames = new Set(grouped.flatMap(g => g.columns.map(c => c.name)))
+  const otherColumns = data.schema.filter(c => !groupedNames.has(c.name) && c.name.toLowerCase().includes(query))
+  if (otherColumns.length > 0) grouped.push({ label: 'Other', columns: otherColumns })
 
   useEffect(() => {
     if (!target || !data.id) return
@@ -247,16 +261,32 @@ export default function TargetTab({ data }) {
         <p style={{fontSize:'13px',color:'var(--text-secondary)',marginBottom:'14px'}}>
           Choose the column you want to predict. The analysis adapts for regression or classification targets.
         </p>
-        <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
-          {candidates.map(c => (
-            <button key={c}
-              onClick={() => setTarget(c)}
-              style={{
-                fontSize:'12px',fontFamily:'var(--font-mono)',padding:'6px 14px',borderRadius:'20px',cursor:'pointer',
-                border:'1px solid var(--border-subtle)',
-                background: c===target?'var(--accent-glow)':'var(--bg-card)',
-                color: c===target?'var(--accent-light)':'var(--text-secondary)',
-              }}>{c}</button>
+        <div className="target-picker-search">
+          <span className="target-picker-search-icon">⌕</span>
+          <input
+            placeholder="Search columns…"
+            value={colSearch}
+            onChange={e => setColSearch(e.target.value)}
+          />
+        </div>
+        <div className="target-picker-groups">
+          {grouped.length === 0 && <div className="target-picker-empty">No columns match "{colSearch}".</div>}
+          {grouped.map(g => (
+            <div key={g.label}>
+              <div className="target-picker-group-label">{g.label} · {g.columns.length}</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+                {g.columns.map(c => (
+                  <button key={c.name}
+                    onClick={() => setTarget(c.name)}
+                    style={{
+                      fontSize:'12px',fontFamily:'var(--font-mono)',padding:'6px 14px',borderRadius:'20px',cursor:'pointer',
+                      border:'1px solid var(--border-subtle)',
+                      background: c.name===target?'var(--accent-glow)':'var(--bg-card)',
+                      color: c.name===target?'var(--accent-light)':'var(--text-secondary)',
+                    }}>{c.name}</button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
