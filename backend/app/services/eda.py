@@ -535,18 +535,23 @@ def _cramers_v(a: pd.Series, b: pd.Series) -> float | None:
     return float(math.sqrt(chi2 / denom))
 
 
-def compute_target_analysis(dataset: dict, target: str) -> dict:
+def stream_target_analysis(dataset: dict, target: str):
+    """Generator yielding progress events while computing target relationships, so the
+    frontend can render the target distribution immediately and show real progress
+    instead of a single blocking request behind a static spinner."""
     df = _load_df(dataset)
     if df is None:
         rows = dataset.get("sample_rows", [])
         if not rows:
-            return {"error": "No data available for target analysis"}
+            yield {"stage": "error", "progress": 0.0, "data": {"error": "No data available for target analysis"}}
+            return
         df = pd.DataFrame(rows)
 
     schema = dataset.get("schema", [])
     by_name = _schema_by_name(schema)
     if target not in df.columns or target not in by_name:
-        return {"error": "Target column not found"}
+        yield {"stage": "error", "progress": 0.0, "data": {"error": "Target column not found"}}
+        return
 
     target_info = by_name[target]
     target_type = target_info.get("type")
@@ -563,6 +568,11 @@ def compute_target_analysis(dataset: dict, target: str) -> dict:
         "recommendations": [],
     }
 
+    # Columns actually worth analyzing — id-like columns (customer_id, uuid, etc.) are
+    # excluded up front so progress reflects the real amount of work left.
+    eligible = [c for c in schema if c["name"] != target and c["name"] in df.columns and not is_id_like(c, df)]
+    total = max(len(eligible), 1)
+
     if task == "regression":
         y = _numeric(df[target])
         y_valid = y.dropna()
@@ -574,46 +584,46 @@ def compute_target_analysis(dataset: dict, target: str) -> dict:
                 "stats": {"mean": _safe(y_valid.mean()), "std": _safe(y_valid.std()), "min": _safe(y_valid.min()), "max": _safe(y_valid.max())},
             }
 
-        for c in schema:
+        # The distribution is cheap to compute and tells the user something useful
+        # immediately, well before the per-column relationship loop finishes.
+        yield {"stage": "target_info", "progress": 0.08, "data": {"target": result["target"], "distribution": result["distribution"]}}
+
+        for i, c in enumerate(eligible):
             col = c["name"]
-            if col == target or col not in df.columns or is_id_like(c, df):
-                continue
             if c.get("type") in ("integer", "float"):
                 x = _numeric(df[col])
                 work = pd.DataFrame({"x": x, "y": y}).dropna()
-                if len(work) < 3 or work["x"].nunique() <= 1 or work["y"].nunique() <= 1:
-                    continue
-                corr = work["x"].corr(work["y"])
-                if pd.isna(corr):
-                    continue
-                sample = work.sample(min(180, len(work)), random_state=1) if len(work) > 180 else work
-                result["numeric_relationships"].append({
-                    "feature": col,
-                    "kind": "numeric_scatter",
-                    "score": _safe(abs(corr)),
-                    "correlation": _safe(corr),
-                    "points": [{"x": _safe(r["x"]), "y": _safe(r["y"])} for _, r in sample.iterrows()],
-                })
+                if len(work) >= 3 and work["x"].nunique() > 1 and work["y"].nunique() > 1:
+                    corr = work["x"].corr(work["y"])
+                    if not pd.isna(corr):
+                        sample = work.sample(min(180, len(work)), random_state=1) if len(work) > 180 else work
+                        result["numeric_relationships"].append({
+                            "feature": col,
+                            "kind": "numeric_scatter",
+                            "score": _safe(abs(corr)),
+                            "correlation": _safe(corr),
+                            "points": [{"x": _safe(r["x"]), "y": _safe(r["y"])} for _, r in sample.iterrows()],
+                        })
             elif c.get("type") in ("categorical", "text", "boolean") and df[col].nunique(dropna=True) <= 20:
                 work = pd.DataFrame({"cat": df[col], "y": y}).dropna()
-                if len(work) < 3:
-                    continue
-                eta = _correlation_ratio(work["cat"], work["y"])
-                groups = []
-                for val, group in work.groupby("cat"):
-                    groups.append({
-                        "value": str(val),
-                        "mean": _safe(group["y"].mean()),
-                        "median": _safe(group["y"].median()),
-                        "count": int(len(group)),
+                if len(work) >= 3:
+                    eta = _correlation_ratio(work["cat"], work["y"])
+                    groups = []
+                    for val, group in work.groupby("cat"):
+                        groups.append({
+                            "value": str(val),
+                            "mean": _safe(group["y"].mean()),
+                            "median": _safe(group["y"].median()),
+                            "count": int(len(group)),
+                        })
+                    groups.sort(key=lambda g: g["count"], reverse=True)
+                    result["categorical_relationships"].append({
+                        "feature": col,
+                        "kind": "category_vs_numeric",
+                        "score": _safe(eta),
+                        "groups": groups[:12],
                     })
-                groups.sort(key=lambda g: g["count"], reverse=True)
-                result["categorical_relationships"].append({
-                    "feature": col,
-                    "kind": "category_vs_numeric",
-                    "score": _safe(eta),
-                    "groups": groups[:12],
-                })
+            yield {"stage": "analyzing", "progress": 0.08 + 0.82 * (i + 1) / total}
 
     else:
         classes = target_non_null.astype(str).value_counts().head(8)
@@ -623,52 +633,51 @@ def compute_target_analysis(dataset: dict, target: str) -> dict:
         }
         target_cat = df[target].astype(str).where(df[target].notna())
 
-        for c in schema:
+        yield {"stage": "target_info", "progress": 0.08, "data": {"target": result["target"], "distribution": result["distribution"]}}
+
+        for i, c in enumerate(eligible):
             col = c["name"]
-            if col == target or col not in df.columns or is_id_like(c, df):
-                continue
             if c.get("type") in ("integer", "float"):
                 x = _numeric(df[col])
                 work = pd.DataFrame({"x": x, "target": target_cat}).dropna()
-                if len(work) < 3 or work["target"].nunique() < 2:
-                    continue
-                eta = _correlation_ratio(work["target"], work["x"])
-                groups = []
-                for val, group in work.groupby("target"):
-                    groups.append({
-                        "class": str(val),
-                        "mean": _safe(group["x"].mean()),
-                        "median": _safe(group["x"].median()),
-                        "count": int(len(group)),
+                if len(work) >= 3 and work["target"].nunique() >= 2:
+                    eta = _correlation_ratio(work["target"], work["x"])
+                    groups = []
+                    for val, group in work.groupby("target"):
+                        groups.append({
+                            "class": str(val),
+                            "mean": _safe(group["x"].mean()),
+                            "median": _safe(group["x"].median()),
+                            "count": int(len(group)),
+                        })
+                    groups.sort(key=lambda g: g["count"], reverse=True)
+                    result["numeric_relationships"].append({
+                        "feature": col,
+                        "kind": "numeric_by_class",
+                        "score": _safe(eta),
+                        "groups": groups[:12],
                     })
-                groups.sort(key=lambda g: g["count"], reverse=True)
-                result["numeric_relationships"].append({
-                    "feature": col,
-                    "kind": "numeric_by_class",
-                    "score": _safe(eta),
-                    "groups": groups[:12],
-                })
             elif c.get("type") in ("categorical", "text", "boolean") and df[col].nunique(dropna=True) <= 20:
                 work = pd.DataFrame({"feature": df[col].astype(str).where(df[col].notna()), "target": target_cat}).dropna()
-                if len(work) < 3 or work["feature"].nunique() < 2 or work["target"].nunique() < 2:
-                    continue
-                score = _cramers_v(work["feature"], work["target"])
-                feature_vals = work["feature"].value_counts().head(10).index
-                target_vals = work["target"].value_counts().head(8).index
-                table = pd.crosstab(work["feature"], work["target"]).reindex(index=feature_vals, columns=target_vals, fill_value=0)
-                cells = []
-                for row in table.index:
-                    for col_val in table.columns:
-                        cells.append({"x": str(col_val), "y": str(row), "count": int(table.loc[row, col_val])})
-                result["categorical_relationships"].append({
-                    "feature": col,
-                    "kind": "category_crosstab",
-                    "score": _safe(score),
-                    "x_values": [str(v) for v in table.columns],
-                    "y_values": [str(v) for v in table.index],
-                    "cells": cells,
-                    "max_count": int(table.to_numpy().max()) if not table.empty else 0,
-                })
+                if len(work) >= 3 and work["feature"].nunique() >= 2 and work["target"].nunique() >= 2:
+                    score = _cramers_v(work["feature"], work["target"])
+                    feature_vals = work["feature"].value_counts().head(10).index
+                    target_vals = work["target"].value_counts().head(8).index
+                    table = pd.crosstab(work["feature"], work["target"]).reindex(index=feature_vals, columns=target_vals, fill_value=0)
+                    cells = []
+                    for row in table.index:
+                        for col_val in table.columns:
+                            cells.append({"x": str(col_val), "y": str(row), "count": int(table.loc[row, col_val])})
+                    result["categorical_relationships"].append({
+                        "feature": col,
+                        "kind": "category_crosstab",
+                        "score": _safe(score),
+                        "x_values": [str(v) for v in table.columns],
+                        "y_values": [str(v) for v in table.index],
+                        "cells": cells,
+                        "max_count": int(table.to_numpy().max()) if not table.empty else 0,
+                    })
+            yield {"stage": "analyzing", "progress": 0.08 + 0.82 * (i + 1) / total}
 
     # Drop negligible relationships (near-zero correlation/eta/Cramer's V) instead of
     # padding the top-8 with columns that aren't actually related to the target.
@@ -701,7 +710,17 @@ def compute_target_analysis(dataset: dict, target: str) -> dict:
             "text": f'{rel["feature"]} has a {strength} relationship with {target}.',
         })
 
-    return result
+    yield {"stage": "complete", "progress": 1.0, "data": result}
+
+
+def compute_target_analysis(dataset: dict, target: str) -> dict:
+    """Non-streaming wrapper around stream_target_analysis for callers that just want
+    the final result (e.g. the AI narrative context builder)."""
+    final = {"error": "Target analysis produced no result"}
+    for event in stream_target_analysis(dataset, target):
+        if event["stage"] in ("error", "complete"):
+            final = event["data"]
+    return final
 
 
 def compute_observations(df: pd.DataFrame, schema: list, correlation: dict, outliers: list) -> list:

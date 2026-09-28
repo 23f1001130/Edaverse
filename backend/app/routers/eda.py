@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response, StreamingResponse
 from app.services.eda import (
-    compute_eda, compute_target_analysis,
+    compute_eda, compute_target_analysis, stream_target_analysis,
     _load_df, compute_distributions, compute_correlation, compute_outliers,
     compute_scatter_pairs, compute_missingness_cooccurrence, compute_missingness_matrix,
     compute_numeric_profile, compute_categorical_profile,
@@ -139,6 +139,28 @@ def get_target_analysis(dataset_id: str, target: str = Query(..., min_length=1))
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result
+
+
+@router.get("/datasets/{dataset_id}/target-analysis/stream")
+@limiter.limit("20/minute")
+def stream_target_analysis_endpoint(request: Request, dataset_id: str, target: str = Query(..., min_length=1)):
+    dataset = get_dataset(dataset_id)
+    if dataset is None:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    def generate():
+        try:
+            for event in stream_target_analysis(dataset, target):
+                yield f"data: {json.dumps(event)}\n\n"
+        except (OSError, ValueError, TypeError, KeyError) as e:
+            logger.warning("Target analysis stream failed for %s: %s: %s", dataset_id, type(e).__name__, e)
+            yield f"data: {json.dumps({'stage': 'error', 'progress': 0.0, 'data': {'error': str(e)}})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("/datasets/{dataset_id}/model-importance")

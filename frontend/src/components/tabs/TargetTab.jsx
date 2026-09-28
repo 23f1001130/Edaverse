@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
-import { apiFetch } from '../../services/api.js'
+import { apiFetch, getAuthHeaders } from '../../services/api.js'
 import './tabs.css'
 
 const BASE = import.meta.env.VITE_API_URL || ''
@@ -167,6 +167,7 @@ function CrosstabPanel({ rows, target }) {
 export default function TargetTab({ data }) {
   const [target, setTarget] = useState(null)
   const [analysis, setAnalysis] = useState(null)
+  const [progress, setProgress] = useState(null)
   const [importance, setImportance] = useState(null)
   const [loading, setLoading] = useState(false)
   const [importanceLoading, setImportanceLoading] = useState(false)
@@ -176,15 +177,59 @@ export default function TargetTab({ data }) {
   useEffect(() => {
     if (!target || !data.id) return
     let cancelled = false
+    const controller = new AbortController()
     setLoading(true)
+    setProgress(0)
     setError(null)
     setAnalysis(null)
     setImportance(null)
-    apiFetch(`${BASE}/api/datasets/${data.id}/target-analysis?target=${encodeURIComponent(target)}`)
-      .then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(new Error(d.detail || 'Target analysis failed'))))
-      .then(d => { if (!cancelled) setAnalysis(d) })
-      .catch(e => { if (!cancelled) setError(e.message) })
-      .finally(() => { if (!cancelled) setLoading(false) })
+
+    // Streamed like the main EDA: the target's own distribution renders as soon as it's
+    // ready, then relationship charts fill in once the per-column pass finishes, instead
+    // of one blocking request that leaves the tab blank until everything is done.
+    getAuthHeaders().then(headers => {
+      fetch(`${BASE}/api/datasets/${data.id}/target-analysis/stream?target=${encodeURIComponent(target)}`, { headers, signal: controller.signal })
+        .then(r => {
+          if (!r.ok || !r.body) {
+            return r.json().catch(() => ({})).then(d => {
+              if (!cancelled) { setError(d.detail || 'Target analysis failed'); setLoading(false) }
+            })
+          }
+          const reader = r.body.getReader()
+          const dec = new TextDecoder()
+          let buf = ''
+          function pump() {
+            return reader.read().then(({ done, value }) => {
+              if (done) { if (!cancelled) setLoading(false); return }
+              buf += dec.decode(value, { stream: true })
+              const lines = buf.split('\n')
+              buf = lines.pop()
+              for (const line of lines) {
+                if (!line.startsWith('data: ')) continue
+                try {
+                  const ev = JSON.parse(line.slice(6))
+                  if (cancelled) continue
+                  if (ev.progress != null) setProgress(ev.progress)
+                  if (ev.stage === 'target_info' && ev.data) {
+                    setAnalysis({ ...ev.data, numeric_relationships: [], categorical_relationships: [], recommendations: [] })
+                  }
+                  if (ev.stage === 'complete' && ev.data) {
+                    setAnalysis(ev.data)
+                    setLoading(false)
+                  }
+                  if (ev.stage === 'error') {
+                    setError(ev.data?.error || 'Target analysis failed')
+                    setLoading(false)
+                  }
+                } catch {}
+              }
+              return pump()
+            })
+          }
+          return pump()
+        })
+        .catch(err => { if (!cancelled && err.name !== 'AbortError') { setError(err.message); setLoading(false) } })
+    })
 
     setImportanceLoading(true)
     apiFetch(`${BASE}/api/datasets/${data.id}/model-importance?target=${encodeURIComponent(target)}`)
@@ -192,7 +237,7 @@ export default function TargetTab({ data }) {
       .then(d => { if (!cancelled) setImportance(d) })
       .catch(() => {})
       .finally(() => { if (!cancelled) setImportanceLoading(false) })
-    return () => { cancelled = true }
+    return () => { cancelled = true; controller.abort() }
   }, [target, data.id])
 
   return (
@@ -216,10 +261,17 @@ export default function TargetTab({ data }) {
         </div>
       </div>
 
-      {loading && <div className="wr-loading"><div className="up-spinner" />Computing target relationships…</div>}
+      {loading && (
+        <div className="wr-loading">
+          <div className="up-spinner" />
+          {analysis
+            ? `Analyzing relationships… ${Math.round((progress || 0) * 100)}%`
+            : 'Loading target distribution…'}
+        </div>
+      )}
       {error && <div className="ws-error">{error}</div>}
 
-      {analysis && !loading && (
+      {analysis && (
         <>
           <div className="tab-grid-4">
             <div className="stat-box"><div className="stat-box-label">Task</div><div className="stat-box-value" style={{fontSize:18}}>{analysis.target.task}</div><div className="stat-box-sub">{analysis.target.type} target</div></div>
