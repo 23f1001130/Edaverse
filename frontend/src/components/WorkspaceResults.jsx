@@ -140,7 +140,10 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
     try {
       const headers = await getAuthHeaders()
       const r = await fetch(`${BASE}/api/datasets/${data.id}/notebook`, { headers })
-      if (!r.ok) return
+      if (!r.ok) {
+        fireToast('Could not generate the notebook. Please try again.', 'error')
+        return
+      }
       const blob = await r.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -150,8 +153,14 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
       a.click()
       document.body.removeChild(a)
       setTimeout(() => URL.revokeObjectURL(url), 30000)
-    } catch {}
-    setTimeout(() => window.open('https://colab.research.google.com/#create=true', '_blank'), 0)
+      // Colab can't auto-load a locally generated file — there's no hosted URL to point it
+      // at, so the clearest thing we can do is download it and tell the user the one manual
+      // step left, then land them on Colab's own upload picker instead of a blank notebook.
+      fireToast('Notebook downloaded — in the Colab tab, use File → Upload notebook to open it', 'success')
+      setTimeout(() => window.open('https://colab.research.google.com/', '_blank'), 0)
+    } catch {
+      fireToast('Could not generate the notebook. Please try again.', 'error')
+    }
   }
 
   useEffect(() => {

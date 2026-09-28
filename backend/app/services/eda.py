@@ -670,6 +670,15 @@ def compute_target_analysis(dataset: dict, target: str) -> dict:
                     "max_count": int(table.to_numpy().max()) if not table.empty else 0,
                 })
 
+    # Drop negligible relationships (near-zero correlation/eta/Cramer's V) instead of
+    # padding the top-8 with columns that aren't actually related to the target.
+    MIN_RELATIONSHIP_SCORE = 0.05
+    result["numeric_relationships"] = [
+        r for r in result["numeric_relationships"] if (r.get("score") or 0) >= MIN_RELATIONSHIP_SCORE
+    ]
+    result["categorical_relationships"] = [
+        r for r in result["categorical_relationships"] if (r.get("score") or 0) >= MIN_RELATIONSHIP_SCORE
+    ]
     result["numeric_relationships"].sort(key=lambda x: x.get("score") or 0, reverse=True)
     result["categorical_relationships"].sort(key=lambda x: x.get("score") or 0, reverse=True)
     result["numeric_relationships"] = result["numeric_relationships"][:8]

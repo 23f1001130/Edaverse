@@ -34,7 +34,8 @@ export default function OverviewTab({ data, eda }) {
     ? (data.schema.reduce((s,c) => s + (c.null_pct||0), 0) / data.schema.length).toFixed(1)
     : 0
   const nulls = (eda?.nulls || [...data.schema].map(c => ({column:c.name, null_pct:c.null_pct||0})))
-    .slice().sort((a,b) => b.null_pct - a.null_pct).slice(0, 8)
+    .filter(n => n.null_pct > 0)
+    .sort((a,b) => b.null_pct - a.null_pct).slice(0, 8)
 
   const missingness = eda?.missingness
   const flaggedPairs = missingness?.flagged_pairs || []
@@ -87,9 +88,14 @@ export default function OverviewTab({ data, eda }) {
         )}
         <div className="panel">
           <div className="panel-title">Missingness by column</div>
+          {nulls.length === 0 && (
+            <div style={{fontSize:13,color:'var(--text-tertiary)',padding:'8px 0'}}>
+              No missing values — this dataset is complete.
+            </div>
+          )}
           <div className="mini-bars">
             {nulls.map(n => {
-              const c = n.null_pct === 0 ? 'var(--green)' : n.null_pct < 10 ? 'var(--amber)' : 'var(--red)'
+              const c = n.null_pct < 10 ? 'var(--amber)' : 'var(--red)'
               return (
                 <div key={n.column} className="mini-bar-row">
                   <span className="mini-bar-name" title={n.column}>{n.column}</span>
