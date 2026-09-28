@@ -181,7 +181,7 @@ Suggestions are grouped by category and can be applied selectively:
 | **Storage** | MongoDB (primary) + local Parquet / JSON (fallback) |
 | **Object storage** | S3-compatible (Cloudflare R2 / AWS S3 via Boto3) |
 | **Monitoring** | Sentry SDK, SlowAPI rate limiting |
-| **Deployment** | DigitalOcean, Nginx, Systemd |
+| **Deployment** | Render (API) + Cloudflare Pages (frontend) |
 
 ---
 
@@ -443,51 +443,38 @@ Stages in order: `overview` → `distributions` → `correlation` → `target` �
 
 ## Deployment
 
-### One-command setup on a fresh Ubuntu server
+edaverse runs on two free managed platforms instead of a self-managed server:
 
-```bash
-ssh root@your-server-ip
+- **Backend** — [Render](https://render.com) web service, deployed from [`render.yaml`](render.yaml) (Python 3.11, `backend/` as root directory, free instance type).
+- **Frontend** — [Cloudflare Pages](https://pages.cloudflare.com), building `frontend/` with Vite and serving the static output from Cloudflare's edge.
+- **Database** — [MongoDB Atlas](https://www.mongodb.com/atlas) (free M0 cluster).
+- **Object storage** — [Cloudflare R2](https://developers.cloudflare.com/r2/) for dataset artifacts, S3-compatible via Boto3.
 
-bash <(curl -fsSL https://raw.githubusercontent.com/23f1001130/dataflow/main/deploy/setup.sh)
-```
-
-This single script will:
-1. Install Python 3, Node 20, Nginx, Git
-2. Clone the repo to `/var/www/dataflow`
-3. Create a Python virtual environment and install dependencies
-4. Build the React frontend
-5. Configure Nginx as a reverse proxy
-6. Create and enable a Systemd service for auto-restart on reboot
-
-### Redeploy after pushing changes
-
-```bash
-/var/www/dataflow/deploy/deploy.sh
-```
+The frontend talks to the backend cross-origin (`VITE_API_URL` pointing at the Render service's own domain) rather than through a same-origin reverse proxy, since routing the SSE-based EDA stream through an edge proxy risks it being buffered.
 
 ### Production checklist
 
 - [ ] Set `AUTH_TRUST_UNVERIFIED_JWT=false`
-- [ ] Set `CLERK_ISSUER_URL` or `CLERK_JWKS_URL`
+- [ ] Set `CLERK_ISSUER_URL` (Clerk **production** instance's Frontend API URL, not the dev instance)
 - [ ] Set `APP_ENV=production`
-- [ ] Set `CORS_ALLOWED_ORIGINS=https://your-domain.com`
-- [ ] Add your domain to Clerk's allowed origins and redirect URLs
-- [ ] Install HTTPS: `certbot --nginx -d your-domain.com`
-- [ ] Set `VITE_APP_URL=https://your-domain.com` before building the frontend
+- [ ] Set `CORS_ALLOWED_ORIGINS` on Render to the frontend's exact origin
+- [ ] Set `VITE_API_URL` on Cloudflare Pages to the Render service's URL, and `VITE_APP_URL` to the frontend's own URL
+- [ ] Add the production domain to Clerk's allowed origins/redirect URLs and to any social connection's (e.g. Google) authorized redirect URIs
+- [ ] Set `MONGODB_URI`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`
 
-### Architecture on the server
+### Architecture
 
 ```
 Browser
   │
-  ▼
-Nginx :80/:443
-  ├── /           → /var/www/html/dataflow/   (static React build)
-  └── /api        → localhost:8000             (FastAPI via Uvicorn)
-                         │
-                    Systemd service
-                    (auto-restarts on failure)
+  ├── https://edaverse.app          → Cloudflare Pages (static React build)
+  │
+  └── https://api.edaverse.app/*    → Render (FastAPI via Uvicorn)
+                                         │
+                                    MongoDB Atlas (metadata) + Cloudflare R2 (dataset files)
 ```
+
+A legacy single-VM deployment path (Nginx + Systemd on a Ubuntu droplet) is still available under [`deploy/`](deploy/) for anyone who'd rather self-host on their own server.
 
 ---
 
