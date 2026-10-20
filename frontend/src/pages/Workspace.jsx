@@ -14,11 +14,11 @@ export default function Workspace({ onHome, autoDemo }) {
   const [reparsing, setReparsing] = useState(false)
   const [nav, setNav] = useState('upload')  // upload | history | settings
   const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem('edaverse_theme') || 'dark' } catch { return 'dark' }
+    try { return localStorage.getItem('edaverse_theme') === 'light' ? 'light' : 'dark' } catch { return 'dark' }
   })
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : '')
+    document.documentElement.setAttribute('data-theme', theme)
     try { localStorage.setItem('edaverse_theme', theme) } catch {}
   }, [theme])
 
@@ -27,6 +27,7 @@ export default function Workspace({ onHome, autoDemo }) {
       className="ws-theme-toggle"
       onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
       title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       type="button"
     >
       {theme === 'dark' ? (
@@ -110,6 +111,7 @@ export default function Workspace({ onHome, autoDemo }) {
           className={`ws-icon ${!result ? 'disabled' : nav === 'upload' ? 'active' : ''}`}
           onClick={() => result && setNav('upload')}
           title={result ? 'Analysis' : 'Upload a file first'}
+          disabled={!result}
           type="button"
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

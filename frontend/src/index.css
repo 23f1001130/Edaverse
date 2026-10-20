@@ -1,6 +1,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
+  color-scheme: dark;
   --bg-base: #0a0e1a;
   --bg-elevated: #0f1420;
   --bg-card: #121829;
@@ -13,8 +14,14 @@
 
   --text-primary: #e8edf7;
   --text-secondary: #9aa7bd;
-  --text-tertiary: #5f6b82;
-  --text-muted: #3f4860;
+  --text-tertiary: #8b98ae;
+  --text-muted: #8491a6;
+  --danger-text: #fca5a5;
+  --warning-text: #fcd34d;
+  --on-success: #0a0e1a;
+  --surface-tint: rgba(255,255,255,0.025);
+  --heatmap-text: #e8edf7;
+  --heatmap-strong-text: #fff;
 
   --accent: #3b82f6;
   --accent-hover: #2563eb;
@@ -52,6 +59,7 @@
 }
 
 :root[data-theme="light"] {
+  color-scheme: light;
   --bg-base: #f8fafc;
   --bg-elevated: #f1f5f9;
   --bg-card: #ffffff;
@@ -64,15 +72,21 @@
 
   --text-primary: #0f172a;
   --text-secondary: #334155;
-  --text-tertiary: #64748b;
-  --text-muted: #94a3b8;
+  --text-tertiary: #52617a;
+  --text-muted: #59687e;
+  --danger-text: #991b1b;
+  --warning-text: #92400e;
+  --on-success: #fff;
+  --surface-tint: rgba(15,23,42,0.025);
+  --heatmap-text: #0f172a;
+  --heatmap-strong-text: #0f172a;
 
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --accent-glow: rgba(37,99,235,0.12);
-  --accent-light: #3b82f6;
+  --accent-light: #1d4ed8;
 
-  --green: #16a34a;
+  --green: #166534;
   --green-bg: rgba(22,163,74,0.10);
   --amber: #b45309;
   --amber-bg: rgba(180,83,9,0.10);
@@ -130,6 +144,15 @@ body::before {
 
 button { font-family: inherit; }
 input { font-family: inherit; }
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
 
 .app-error {
   min-height: 100vh;

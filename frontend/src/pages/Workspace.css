@@ -16,7 +16,7 @@
   gap: 10px;
   padding: 16px 0;
   border-right: 1px solid var(--border-subtle);
-  background: rgba(10,14,26,0.94);
+  background: var(--bg-elevated);
 }
 
 .ws-logo,
@@ -84,8 +84,7 @@
   justify-content: space-between;
   padding: 0 28px;
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(10,14,26,0.72);
-  backdrop-filter: blur(14px);
+  background: var(--bg-card);
 }
 
 .ws-theme-toggle {

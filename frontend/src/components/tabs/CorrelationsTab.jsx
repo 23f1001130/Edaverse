@@ -2,9 +2,8 @@ import React, { useState } from 'react'
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { getSetting } from '../../services/toast.js'
 import './tabs.css'
+import { tooltipStyle, GRID, TICK } from './chartTheme.js'
 
-const GRID = '#242d42'
-const TICK = '#5f6b82'
 
 function cellColor(v) {
   if (v === null || v === undefined) return 'var(--bg-input)'
@@ -111,7 +110,7 @@ export default function CorrelationsTab({ eda }) {
                         <td key={col} title={`${row} × ${col}: ${v?.toFixed(4) ?? 'n/a'}`} style={{
                           background: cellColor(v), borderRadius:'6px', padding:'10px 8px',
                           textAlign:'center', minWidth:'56px', fontFamily:'var(--font-mono)',
-                          color: Math.abs(v||0)>0.5?'#fff':'var(--text-secondary)', fontWeight: v===1?700:500,
+                          color: Math.abs(v||0)>0.5?'var(--heatmap-strong-text)':'var(--text-secondary)', fontWeight: v===1?700:500,
                         }}>{v!==null&&v!==undefined?v.toFixed(2):'-'}</td>
                       )
                     })}
@@ -156,7 +155,7 @@ export default function CorrelationsTab({ eda }) {
                 <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
                 <XAxis type="number" dataKey="x" name="PC1" tick={{fontSize:11,fill:TICK}} axisLine={false} tickLine={false} />
                 <YAxis type="number" dataKey="y" name="PC2" tick={{fontSize:11,fill:TICK}} axisLine={false} tickLine={false} />
-                <Tooltip cursor={{stroke:'#3b82f6',strokeWidth:1}} contentStyle={{ background:'#121829', border:'1px solid #242d42', borderRadius:8, fontSize:12, color:'#e8edf7' }} />
+                <Tooltip cursor={{stroke:'var(--accent)',strokeWidth:1}} contentStyle={tooltipStyle} />
                 <Scatter data={pca.points} fill="#3b82f6" opacity={0.72} />
               </ScatterChart>
             </ResponsiveContainer>

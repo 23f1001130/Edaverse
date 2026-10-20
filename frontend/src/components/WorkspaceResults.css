@@ -13,8 +13,7 @@
   gap: 16px;
   padding: 0 24px;
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(10,14,26,0.72);
-  backdrop-filter: blur(14px);
+  background: var(--bg-card);
   flex-shrink: 0;
 }
 
@@ -131,8 +130,12 @@
   flex-direction: column;
   flex-shrink: 0;
   border-right: 1px solid var(--border-subtle);
-  background: rgba(10,14,26,0.54);
+  background: var(--bg-elevated);
 }
+
+.wr-colbar[hidden] { display: none; }
+
+.wr-analysis-error { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px; margin-bottom: 20px; border: 1px solid var(--red); background: var(--red-bg); color: var(--danger-text); border-radius: var(--radius); font-size: 13px; line-height: 1.6; }
 
 .wr-colbar-header {
   display: flex;
@@ -181,6 +184,11 @@
 }
 
 .wr-colsearch input::placeholder { color: var(--text-muted); }
+
+.wr-colsearch:focus-within { border-color: var(--accent); outline: 2px solid var(--accent-glow); }
+.wr-colsearch-clear { border: 0; background: transparent; color: var(--text-secondary); padding: 4px; cursor: pointer; }
+.wr-colsearch-empty { color: var(--text-secondary); font-size: 13px; line-height: 1.6; padding: 16px 6px; overflow-wrap: anywhere; }
+.wr-colsearch-empty button { display: block; margin-top: 12px; border: 0; background: transparent; color: var(--accent-light); cursor: pointer; text-decoration: underline; }
 
 .wr-collist {
   flex: 1;
