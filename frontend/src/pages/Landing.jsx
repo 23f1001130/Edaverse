@@ -1,22 +1,8 @@
 import React from 'react'
 import { FeatureLinks, MarketingFooter, Questions } from '../components/MarketingContent.jsx'
 import ThemeToggle from '../components/ThemeToggle.jsx'
+import ProductPreview from '../components/ProductPreview.jsx'
 import './Landing.css'
-
-const metricCards = [
-  ['Rows profiled', '7,043'],
-  ['Quality score', '91'],
-  ['Missing cells', '8.4%'],
-  ['Feature ideas', '18'],
-]
-
-const columns = [
-  ['age', 'NUM', 86],
-  ['tenure_months', 'NUM', 62],
-  ['monthly_charges', 'NUM', 78],
-  ['contract_type', 'CAT', 42],
-  ['churn', 'CAT', 54],
-]
 
 export default function Landing({ onSignIn, onGetStarted, onDemo, isSignedIn = false, userButton = null }) {
   const activate = callback => event => {
@@ -93,58 +79,7 @@ export default function Landing({ onSignIn, onGetStarted, onDemo, isSignedIn = f
             </div>
           </div>
 
-          <div className="hero-product" aria-label="edaverse product preview">
-            <div className="product-shell">
-              <aside className="product-sidebar">
-                <span className="product-dot" />
-                <span />
-                <span />
-                <span />
-              </aside>
-              <div className="product-main">
-                <div className="product-top">
-                  <div>
-                    <span className="product-kicker">customer_churn.csv</span>
-                    <strong>Exploratory analysis</strong>
-                  </div>
-                  <button type="button">Report</button>
-                </div>
-                <div className="product-metrics">
-                  {metricCards.map(([label, value]) => (
-                    <div key={label}>
-                      <span>{label}</span>
-                      <strong>{value}</strong>
-                    </div>
-                  ))}
-                </div>
-                <div className="product-grid">
-                  <div className="product-panel product-columns">
-                    <div className="product-panel-title">Column health</div>
-                    {columns.map(([name, type, value]) => (
-                      <div className="product-column" key={name}>
-                        <div>
-                          <span>{name}</span>
-                          <em>{type}</em>
-                        </div>
-                        <div className="product-track">
-                          <i style={{ width: `${value}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="product-panel product-chart">
-                    <div className="product-panel-title">Distribution</div>
-                    <div className="product-bars">
-                      {[34, 52, 68, 84, 61, 76, 46, 89, 58, 70].map((height, index) => (
-                        <span key={index} style={{ height: `${height}%` }} />
-                      ))}
-                    </div>
-                    <div className="product-note">AI narrative found 3 cleanup priorities.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ProductPreview onDemo={onDemo} />
         </section>
 
         <section className="workflow-strip" id="workflow" aria-label="Workflow">
