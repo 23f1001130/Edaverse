@@ -68,7 +68,7 @@ export default function ProductPreview({ onDemo }) {
           {[['Rows profiled', sample.rows], ['Quality score', sample.quality], ['Missing cells', sample.missing], ['Feature ideas', sample.ideas]].map(([label, value]) =>
             <div key={label}><span>{label}</span><strong>{value}</strong></div>)}
         </div>
-        <div className="product-grid">
+        {!reportOpen && <div className="product-grid">
           <div className="product-panel product-columns">
             <div className="product-panel-title">Column health</div>
             <span className="preview-instruction">Select a column to explore</span>
@@ -90,7 +90,7 @@ export default function ProductPreview({ onDemo }) {
             <div className="preview-axis"><span>{column.bins[0]}</span><span>{column.bins.at(-1)}</span></div>
             <div className="product-note">{column.note}</div>
           </div>
-        </div>
+        </div>}
         {reportOpen && <section className="preview-report" id="sample-analysis-report" aria-label="Sample analysis report">
           <h3>{sample.name}: sample report</h3>
           <p>{sample.rows} rows · quality score {sample.quality} · {sample.missing} missing cells</p>
