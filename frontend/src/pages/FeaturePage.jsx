@@ -1,5 +1,6 @@
 import React from 'react'
 import { FeatureLinks, MarketingFooter, Questions } from '../components/MarketingContent.jsx'
+import ThemeToggle from '../components/ThemeToggle.jsx'
 import './Landing.css'
 
 export default function FeaturePage({ page }) {
@@ -7,7 +8,7 @@ export default function FeaturePage({ page }) {
     <a className="skip-link" href="#main-content">Skip to content</a>
     <nav className="lnav" aria-label="Main navigation">
       <a className="lnav-logo" href="/">edaverse</a>
-      <a className="lnav-cta" href="/?start=1">Get started</a>
+      <div className="lnav-actions"><ThemeToggle /><a className="lnav-cta" href="/?start=1">Get started</a></div>
     </nav>
     <main id="main-content">
       <header className="seo-section feature-intro">

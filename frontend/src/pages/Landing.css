@@ -48,6 +48,12 @@
   .marketing-footer nav { flex-direction: column; }
 }
 
+@media (max-width: 480px) {
+  .lnav-actions { gap: 8px; }
+  .lnav-signin { padding: 0 6px; }
+  .lnav-cta { padding: 0 12px; }
+}
+
 .lnav {
   position: sticky;
   top: 0;
