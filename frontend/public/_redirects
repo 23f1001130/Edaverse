@@ -1,0 +1,4 @@
+# Cloudflare Pages: keep the Clerk callback working with a real top-level 404 page.
+/sso-callback /auth-callback.html 200
+/sso-callback/ /auth-callback.html 200
+/sso-callback/* /auth-callback.html 200

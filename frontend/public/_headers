@@ -1,0 +1,8 @@
+/sso-callback
+  X-Robots-Tag: noindex, nofollow
+/sso-callback/*
+  X-Robots-Tag: noindex, nofollow
+/auth-callback
+  X-Robots-Tag: noindex, nofollow
+/auth-callback.html
+  X-Robots-Tag: noindex, nofollow
