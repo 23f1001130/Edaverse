@@ -32,15 +32,15 @@ Desktop browser inspection confirmed the updated homepage and navigation to the 
 
 ## Publish the changes
 
-Changes are on the local `codex/edaverse-seo` branch. GitHub's saved login was invalid during this work, so no remote branch or pull request could be published. Reconnect GitHub before pushing the branch and opening a pull request.
+Changes are on `codex/edaverse-seo`. GitHub access was confirmed after checking outside the restricted network environment; the saved login is valid.
 
 For Cloudflare Pages, keep `frontend` as the root directory, `npm run build` as the build command, and `dist` as the output directory. The build now includes prerendering and validation; do not replace it with `vite build` alone. Keep the existing production `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_APP_URL`, `VITE_API_URL`, and optional Sentry settings. No new runtime secrets or services are required. Node 24 matches the repository's CI configuration.
 
 After deploying the preview, check the home page, each feature page, demo entry, sign-in, sign-out, and the Google SSO callback. Check a deliberately nonexistent URL returns HTTP 404 and the callback still loads the app. Cloudflare's routing behavior cannot be fully tested by Vite's preview server. Then merge and check the production deployment.
 
-## Google Search Console: account access still required
+## Google Search Console
 
-The available browser was not signed into Search Console. Whether this domain is already verified remains unknown. No sitemap was submitted and no ownership or DNS settings were changed.
+The owner verified the Domain property through Cloudflare. On 20 October 2026, the connected browser confirmed access to the verified property. The live sitemap at `https://edaverse.app/sitemap.xml` was submitted successfully; Search Console reported Success and one discovered page. URL Inspection confirmed that the homepage is already indexed and served over HTTPS. The initial performance reports are still processing. The updated sitemap will include four public pages after deployment. No additional DNS settings were changed during submission.
 
 1. Sign in to [Google Search Console](https://search.google.com/search-console). Check whether `edaverse.app` is already a property in the property selector.
 2. If absent, add the Domain property `edaverse.app`. Google will provide the exact DNS TXT verification value. Add that value through the domain's DNS provider and complete verification. Do not guess or reuse another domain's token.
@@ -62,7 +62,7 @@ The first four pages are complete. Use actual Search Console queries to prioriti
 
 Create each new guide around a distinct user task and add it to the shared page registry so that its metadata and sitemap entry are generated together. Avoid near-identical keyword pages.
 
-The public GitHub repository currently has no About description, website, or topics. Suggested description: “Open-source, no-code exploratory data analysis for CSV and Excel: profiling, guided cleaning, feature engineering, and export.” Suggested website: `https://edaverse.app/`. Suggested topics: `exploratory-data-analysis`, `data-cleaning`, `data-profiling`, `csv`, `excel`, `react`, `fastapi`. These account settings were not changed because no authenticated GitHub session was available.
+The public GitHub repository initially had no About description, website, or topics. Suggested description: “Open-source, no-code exploratory data analysis for CSV and Excel: profiling, guided cleaning, feature engineering, and export.” Suggested website: `https://edaverse.app/`. Suggested topics: `exploratory-data-analysis`, `data-cleaning`, `data-profiling`, `csv`, `excel`, `react`, `fastapi`.
 
 Share a useful sample analysis with relevant data communities and documentation resources when ready. No outreach, directory submissions, or paid links were sent or purchased. Search Console supplies organic-search measurement without adding a tracking script. Product conversion tracking can be planned after the owner selects an analytics service and privacy settings.
 
