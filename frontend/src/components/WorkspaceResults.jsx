@@ -31,7 +31,7 @@ const ColumnRow = React.memo(function ColumnRow({ col, active, onClick }) {
   const pct = col.null_pct || 0
   const barColor = pct === 0 ? 'var(--green)' : pct < 10 ? 'var(--amber)' : 'var(--red)'
   return (
-    <button className={`col-row ${active ? 'active' : ''}`} onClick={onClick}>
+    <button className={`col-row ${active ? 'active' : ''}`} onClick={onClick} type="button" aria-pressed={active}>
       <div className="col-row-top">
         <span className="col-row-name">{col.name}</span>
         <span className={`col-row-tag ${isNum ? 'num' : 'cat'}`}>{isNum ? 'NUM' : 'CAT'}</span>
@@ -51,6 +51,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
   const [tab, setTab] = useState('Overview')
   const [visitedTabs, setVisitedTabs] = useState(new Set(['Overview']))
   const [search, setSearch] = useState('')
+  const [columnsOpen, setColumnsOpen] = useState(true)
   const [activeCol, setActiveCol] = useState(null)
   const [eda, setEda] = useState(null)
   const [edaLoading, setEdaLoading] = useState(true)
@@ -60,6 +61,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
   const [showTour, setShowTour] = useState(false)
   const edaAbortRef = useRef(null)
   const edaDoneRef = useRef(false)  // fire EDA toast only once per dataset
+  const tabRefs = useRef([])
 
   useEffect(() => { setData(initialData); edaDoneRef.current = false }, [initialData])
 
@@ -128,6 +130,18 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
   function goTab(t) {
     setTab(t)
     setVisitedTabs(prev => { const n = new Set(prev); n.add(t); return n })
+  }
+
+  function handleTabKeyDown(event, index) {
+    let next
+    if (event.key === 'ArrowRight') next = (index + 1) % TABS.length
+    else if (event.key === 'ArrowLeft') next = (index + TABS.length - 1) % TABS.length
+    else if (event.key === 'Home') next = 0
+    else if (event.key === 'End') next = TABS.length - 1
+    else return
+    event.preventDefault()
+    goTab(TABS[next])
+    tabRefs.current[next]?.focus()
   }
 
   function handleDataUpdate(updated) {
@@ -206,7 +220,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
                 {done} / {total} steps
                 <span style={{
                   display:'inline-block', marginLeft:6, width:32, height:4,
-                  background:'rgba(255,255,255,0.15)', borderRadius:2, verticalAlign:'middle',
+                  background:'var(--border-default)', borderRadius:2, verticalAlign:'middle',
                 }}>
                   <span style={{
                     display:'block', height:'100%', borderRadius:2,
@@ -221,6 +235,9 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
         </div>
         <div className="wr-actions" data-tour="actions">
           {themeControl}
+          <button className="wr-export-btn" type="button" onClick={() => setColumnsOpen(open => !open)} aria-expanded={columnsOpen} aria-controls="workspace-columns">
+            {columnsOpen ? 'Hide columns' : 'Show columns'}
+          </button>
           <button className="wr-narrative-btn" data-tour="ai-btn" onClick={() => setNarrativeOpen(true)} title="AI Narrative">
             <svg className="wr-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
@@ -256,20 +273,24 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
       </div>
 
       <div className="wr-body">
-        <aside className="wr-colbar" data-tour="colbar">
+        <aside className="wr-colbar" data-tour="colbar" id="workspace-columns" aria-label="Dataset columns" hidden={!columnsOpen}>
           <div className="wr-colbar-header">
             <span>COLUMNS</span>
-            <span className="wr-colbar-count">{data.schema.length}</span>
+            <span className="wr-colbar-count">{search ? `${filteredCols.length} / ${data.schema.length}` : data.schema.length}</span>
           </div>
           <div className="wr-colsearch">
             <span className="wr-colsearch-icon">⌕</span>
             <input
+              type="search"
+              aria-label="Search dataset columns"
               placeholder="Search columns…"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
+            {search && <button className="wr-colsearch-clear" type="button" aria-label="Clear column search" onClick={() => setSearch('')}>×</button>}
           </div>
           <div className="wr-collist">
+            {filteredCols.length === 0 && <div className="wr-colsearch-empty" role="status">No columns match “{search}”.<button type="button" onClick={() => setSearch('')}>Show all columns</button></div>}
             {filteredCols.map(col => (
               <ColumnRow
                 key={col.name}
@@ -293,18 +314,30 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
             </div>
           )}
 
-          <div className="wr-tabs" data-tour="tabs">
-            {TABS.map(t => (
+          <div className="wr-tabs" data-tour="tabs" role="tablist" aria-label="Analysis views">
+            {TABS.map((t, index) => (
               <button
                 key={t}
+                ref={element => { tabRefs.current[index] = element }}
+                type="button"
+                role="tab"
+                id={`workspace-tab-${index}`}
+                aria-selected={tab === t}
+                aria-controls="workspace-tabpanel"
+                tabIndex={tab === t ? 0 : -1}
                 className={`wr-tab ${tab === t ? 'active' : ''}`}
                 data-tour={`tab-${t.toLowerCase().replace(/\s+/g, '-')}`}
                 onClick={() => goTab(t)}
+                onKeyDown={event => handleTabKeyDown(event, index)}
               >{t}</button>
             ))}
           </div>
 
-          <div className="wr-tab-content">
+          <div className="wr-tab-content" id="workspace-tabpanel" role="tabpanel" aria-labelledby={`workspace-tab-${TABS.indexOf(tab)}`} tabIndex={0}>
+            {edaError && <div className="wr-analysis-error" role="alert">
+              <span>We couldn’t finish the analysis. Retry without uploading your file again.</span>
+              <button type="button" className="wr-export-btn" onClick={refreshEda}>Retry analysis</button>
+            </div>}
             {edaLoading && tab !== 'Cleaning Report' && tab !== 'Feature Engineering' && tab !== 'Steps Applied' ? (
               <div className="wr-loading">
                 <div className="wr-progress-bar">

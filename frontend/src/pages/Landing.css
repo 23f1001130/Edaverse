@@ -1,7 +1,7 @@
 .landing {
   min-height: 100vh;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.035), transparent 46%),
+    linear-gradient(180deg, var(--surface-tint), transparent 46%),
     var(--bg-base);
 }
 
@@ -222,7 +222,7 @@
 .hero-secondary {
   padding: 0 22px;
   border: 1px solid var(--border-default);
-  background: rgba(15,20,32,0.8);
+  background: var(--bg-elevated);
   color: var(--text-primary);
   display: inline-flex;
   align-items: center;
@@ -247,7 +247,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   color: var(--text-tertiary);
-  background: rgba(255,255,255,0.025);
+  background: var(--surface-tint);
   font-size: 12px;
   font-weight: 700;
 }
@@ -263,7 +263,7 @@
   overflow: hidden;
   border: 1px solid var(--border-default);
   border-radius: 8px;
-  background: rgba(10,14,26,0.92);
+  background: var(--bg-card);
   box-shadow: var(--shadow-lg);
 }
 
@@ -460,7 +460,7 @@
   gap: 8px;
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  background: rgba(15,20,32,0.74);
+  background: var(--bg-elevated);
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 700;

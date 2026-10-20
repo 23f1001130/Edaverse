@@ -80,7 +80,7 @@ export default function OverviewTab({ data, eda }) {
                 <div key={i} style={{
                   fontSize:'13px', lineHeight:'1.5', padding:'10px 12px', borderRadius:'8px',
                   background: o.severity==='high'?'var(--red-bg)':o.severity==='medium'?'var(--amber-bg)':'var(--accent-glow)',
-                  color: o.severity==='high'?'#fca5a5':o.severity==='medium'?'#fcd34d':'var(--accent-light)'
+                  color: o.severity==='high'?'var(--danger-text)':o.severity==='medium'?'var(--warning-text)':'var(--accent-light)'
                 }}>{o.text}</div>
               ))}
             </div>
@@ -170,7 +170,7 @@ export default function OverviewTab({ data, eda }) {
             {skewedCols.map(c => {
               const isHigh = Math.abs(c.skewness) > 2
               const barColor = isHigh ? 'var(--red)' : 'var(--amber)'
-              const valColor = isHigh ? '#fca5a5' : 'var(--amber)'
+              const valColor = isHigh ? 'var(--danger-text)' : 'var(--amber)'
               return (
                 <div
                   key={c.name}

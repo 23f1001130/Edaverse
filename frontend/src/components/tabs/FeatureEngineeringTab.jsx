@@ -216,7 +216,7 @@ export default function FeatureEngineeringTab({ data, onDataUpdate }) {
               {items.map(s => {
                 const checked = selected.has(s.id)
                 return (
-                  <label key={s.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 8px', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer', borderRadius: 6, background: checked ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
+                  <label key={s.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 8px', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer', borderRadius: 6, background: checked ? 'var(--surface-tint)' : 'transparent' }}>
                     <input type="checkbox" checked={checked} onChange={() => toggle(s.id)}
                       style={{ marginTop: 3, width: 14, height: 14, cursor: 'pointer' }} />
                     <div style={{ flex: 1 }}>
@@ -267,7 +267,7 @@ export default function FeatureEngineeringTab({ data, onDataUpdate }) {
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button onClick={useEngineered} disabled={promoting}
-                style={{ background: 'var(--green)', color: '#0a0e1a', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: promoting ? 0.6 : 1 }}>
+                style={{ background: 'var(--green)', color: 'var(--on-success)', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: promoting ? 0.6 : 1 }}>
                 {promoting ? 'Switching…' : '↻ Continue with engineered data'}
               </button>
               <button onClick={() => window.open(`${BASE}/api/datasets/${data.id}/download-engineered`, '_blank')}

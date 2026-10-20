@@ -1,13 +1,11 @@
 import React, { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, ReferenceLine, Cell } from 'recharts'
 import './tabs.css'
+import { tooltipStyle, GRID, TICK } from './chartTheme.js'
 
-const tooltipStyle = { background:'#121829', border:'1px solid #242d42', borderRadius:8, fontSize:12, color:'#e8edf7' }
-const GRID = '#242d42'
-const TICK = '#5f6b82'
-const C_NUM = '#3b82f6'
-const C_CAT = '#a78bfa'
-const C_TIME = '#f59e0b'
+const C_NUM = 'var(--num)'
+const C_CAT = 'var(--cat)'
+const C_TIME = 'var(--amber)'
 
 function SkewBadge({ skewness }) {
   if (skewness === null || skewness === undefined) return null
