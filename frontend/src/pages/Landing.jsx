@@ -1,5 +1,5 @@
 import React from 'react'
-import { useAuth, UserButton } from '@clerk/clerk-react'
+import { FeatureLinks, MarketingFooter, Questions } from '../components/MarketingContent.jsx'
 import './Landing.css'
 
 const metricCards = [
@@ -17,13 +17,16 @@ const columns = [
   ['churn', 'CAT', 54],
 ]
 
-export default function Landing({ onSignIn, onGetStarted, onDemo }) {
-  const { isSignedIn } = useAuth()
+export default function Landing({ onSignIn, onGetStarted, onDemo, isSignedIn = false, userButton = null }) {
+  const activate = callback => event => {
+    if (callback) { event.preventDefault(); callback() }
+  }
 
   return (
     <div className="landing">
-      <nav className="lnav">
-        <button className="lnav-logo" onClick={onGetStarted} type="button" aria-label="Open edaverse">
+      <a className="skip-link" href="#main-content">Skip to content</a>
+      <nav className="lnav" aria-label="Main navigation">
+        <a className="lnav-logo" href="/?start=1" onClick={activate(onGetStarted)} aria-label="Open edaverse">
           <span className="lnav-mark">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="7" rx="1.5"/>
@@ -33,23 +36,23 @@ export default function Landing({ onSignIn, onGetStarted, onDemo }) {
             </svg>
           </span>
           <span className="lnav-name">edaverse</span>
-        </button>
+        </a>
         <div className="lnav-actions">
           {isSignedIn ? (
             <>
-              <UserButton afterSignOutUrl="/" />
-              <button className="lnav-cta" onClick={onGetStarted} type="button">Workspace</button>
+              {userButton}
+              <a className="lnav-cta" href="/?start=1" onClick={activate(onGetStarted)}>Workspace</a>
             </>
           ) : (
             <>
-              <button className="lnav-signin" onClick={onSignIn} type="button">Sign in</button>
-              <button className="lnav-cta" onClick={onGetStarted} type="button">Get started</button>
+              <a className="lnav-signin" href="/?start=1" onClick={activate(onSignIn)}>Sign in</a>
+              <a className="lnav-cta" href="/?start=1" onClick={activate(onGetStarted)}>Get started</a>
             </>
           )}
         </div>
       </nav>
 
-      <main>
+      <main id="main-content">
         <section className="hero" id="product">
           <div className="hero-copy">
             <div className="hero-badge">
@@ -59,31 +62,31 @@ export default function Landing({ onSignIn, onGetStarted, onDemo }) {
               with AI-powered EDA — no code required
             </div>
             <h1 className="hero-title">
-              Drop data.<br /><span className="hero-title-gradient">Get answers.</span>
+              No-code data analysis.<br /><span className="hero-title-gradient">CSV to clarity.</span>
             </h1>
             <p className="hero-sub">
-              edaverse profiles, cleans, and engineers features from your raw datasets — so analysts can focus on decisions, not data wrangling.
+              Explore CSV and Excel files with automated exploratory data analysis (EDA). Profile missing values, visualize relationships, review cleaning suggestions, and engineer features without writing code.
             </p>
             <div className="hero-actions">
-              <button className="hero-primary" onClick={onGetStarted} type="button">
+              <a className="hero-primary" href="/?start=1" onClick={activate(onGetStarted)}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="17 8 12 3 7 8"/>
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
                 Upload your dataset
-              </button>
-              <button className="hero-secondary" onClick={onDemo} type="button">
+              </a>
+              <a className="hero-secondary" href="/?demo=1" onClick={activate(onDemo)}>
                 View demo
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12"/>
                   <polyline points="12 5 19 12 12 19"/>
                 </svg>
-              </button>
+              </a>
             </div>
             <div className="hero-trust">
               <span>✓ No credit card required</span>
-              <span>◇ Runs locally &amp; private</span>
+              <span>◇ Open source &amp; self-hostable</span>
               <span>⟨⟩ Open data formats</span>
             </div>
           </div>
@@ -168,7 +171,7 @@ export default function Landing({ onSignIn, onGetStarted, onDemo }) {
         <section className="features" id="features">
           <div className="section-head">
             <span>Built for analysis work</span>
-            <h2>From raw file to trustworthy next step.</h2>
+            <h2>Profile, clean, and prepare your data.</h2>
           </div>
           <div className="features-grid">
             <article className="feature-card">
@@ -203,16 +206,28 @@ export default function Landing({ onSignIn, onGetStarted, onDemo }) {
           </div>
         </section>
 
+        <FeatureLinks />
+        <section className="seo-section" aria-labelledby="workflow-guide-title">
+          <h2 id="workflow-guide-title">From a raw dataset to a useful next step</h2>
+          <ol className="seo-steps">
+            <li><strong>Upload and inspect.</strong> Add a CSV or Excel file, then check the parsed columns, detected types, and warnings.</li>
+            <li><strong>Explore and decide.</strong> Review missing values, distributions, outliers, and correlations before choosing cleaning operations.</li>
+            <li><strong>Prepare and export.</strong> Apply suitable fixes, engineer features, and export a cleaned file, notebook, or report.</li>
+          </ol>
+          <p>Use edaverse for a course project, a first pass on a business export, or preparation for a modeling workflow. Review suggested changes using your knowledge of the data.</p>
+        </section>
+        <Questions />
         <section className="cta">
           <div>
             <span>Ready when your next dataset is.</span>
             <h2>Open the workspace and start profiling.</h2>
           </div>
-          <button className="hero-primary" onClick={onGetStarted} type="button">
+          <a className="hero-primary" href="/?start=1" onClick={activate(onGetStarted)}>
             Start now
-          </button>
+          </a>
         </section>
       </main>
+      <MarketingFooter />
     </div>
   )
 }

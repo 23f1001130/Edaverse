@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.prerender.config.js && node scripts/prerender.mjs && node scripts/check-seo.mjs",
+    "check:seo": "node scripts/check-seo.mjs",
     "preview": "vite preview",
     "test": "vitest run"
   },

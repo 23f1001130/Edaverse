@@ -12,6 +12,7 @@ venv/
 
 # Node
 node_modules/
+.prerender/
 dist/
 .next/
 .nuxt/

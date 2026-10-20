@@ -2,7 +2,8 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://edaverse.app/</loc>
-    <changefreq>monthly</changefreq>
-    <priority>1.0</priority>
   </url>
+  <url><loc>https://edaverse.app/csv-data-analysis/</loc></url>
+  <url><loc>https://edaverse.app/excel-data-profiling/</loc></url>
+  <url><loc>https://edaverse.app/automated-data-cleaning/</loc></url>
 </urlset>

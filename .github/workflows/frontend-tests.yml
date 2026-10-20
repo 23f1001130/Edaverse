@@ -32,3 +32,6 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Build and validate public SEO pages
+        run: npm run build

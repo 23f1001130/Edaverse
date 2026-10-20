@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { useAuth, useClerk } from '@clerk/clerk-react'
+import React, { lazy, Suspense, useState, useEffect } from 'react'
+import { useAuth, useClerk, UserButton } from '@clerk/clerk-react'
 import Landing from './pages/Landing.jsx'
-import Workspace from './pages/Workspace.jsx'
-import AuthPage from './pages/AuthPage.jsx'
+const Workspace = lazy(() => import('./pages/Workspace.jsx'))
+const AuthPage = lazy(() => import('./pages/AuthPage.jsx'))
 
 const APP_URL = import.meta.env.VITE_APP_URL || window.location.origin
 
@@ -65,10 +65,20 @@ function SSOCallback() {
   )
 }
 
-export default function App() {
+function AppContent() {
   const { isSignedIn, isLoaded } = useAuth()
-  const [view, setView] = useState('landing')
-  const [startDemo, setStartDemo] = useState(false)
+  const params = new URLSearchParams(window.location.search)
+  const [view, setView] = useState(() => params.has('demo') ? 'workspace' : params.has('start') ? 'auth' : 'landing')
+  const [startDemo, setStartDemo] = useState(() => params.has('demo'))
+
+  useEffect(() => {
+    if (params.has('start') || params.has('demo')) {
+      params.delete('start')
+      params.delete('demo')
+      const query = params.toString()
+      window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`)
+    }
+  }, [])
 
   useEffect(() => {
     if (isLoaded && isSignedIn && view === 'auth') {
@@ -77,12 +87,12 @@ export default function App() {
   }, [isLoaded, isSignedIn])
 
   // Handle SSO callback URL — match on pathname only to avoid false positives.
-  const _path = window.location.pathname
+  const _path = window.location.pathname.replace(/\/+$/, '') || '/'
   if (_path === '/sso-callback' || _path.endsWith('/sso-callback')) {
     return <SSOCallback />
   }
 
-  if (!isLoaded) {
+  if (!isLoaded && view !== 'landing') {
     return (
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center',
@@ -102,6 +112,8 @@ export default function App() {
     return (
       <ErrorBoundary>
         <Landing
+          isSignedIn={isSignedIn}
+          userButton={isSignedIn ? <UserButton afterSignOutUrl="/" /> : null}
           onSignIn={() => setView('auth')}
           onGetStarted={() => {
             if (isSignedIn) { setStartDemo(false); setView('workspace') }
@@ -126,4 +138,8 @@ export default function App() {
       <Workspace onHome={() => setView('landing')} autoDemo={startDemo} />
     </ErrorBoundary>
   )
+}
+
+export default function App() {
+  return <Suspense fallback={<div className="app-loading" role="status">Opening workspace…</div>}><AppContent /></Suspense>
 }
