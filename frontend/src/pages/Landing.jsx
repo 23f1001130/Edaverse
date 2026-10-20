@@ -1,5 +1,6 @@
 import React from 'react'
 import { FeatureLinks, MarketingFooter, Questions } from '../components/MarketingContent.jsx'
+import ThemeToggle from '../components/ThemeToggle.jsx'
 import './Landing.css'
 
 const metricCards = [
@@ -38,6 +39,7 @@ export default function Landing({ onSignIn, onGetStarted, onDemo, isSignedIn = f
           <span className="lnav-name">edaverse</span>
         </a>
         <div className="lnav-actions">
+          <ThemeToggle />
           {isSignedIn ? (
             <>
               {userButton}
