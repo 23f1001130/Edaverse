@@ -45,5 +45,9 @@ for (const page of pages) {
 }
 const notFound = await readFile(new URL('../dist/404.html', import.meta.url), 'utf8')
 assert(notFound.includes('content="noindex"'))
+const callback = new JSDOM(await readFile(new URL('../dist/auth-callback.html', import.meta.url), 'utf8')).window.document
+assert(callback.querySelector('meta[name="robots"]').content.includes('noindex'))
+assert.equal(callback.querySelector('link[rel="canonical"]'), null)
+assert.equal(callback.querySelector('#root').textContent, '')
 assert.equal((sitemap.match(/<loc>/g) || []).length, pages.length)
 console.log(`SEO checks passed: ${pages.length} static pages, unique metadata, canonicals, schema, internal links, assets, sitemap, and 404 noindex.`)

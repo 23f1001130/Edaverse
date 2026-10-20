@@ -28,7 +28,7 @@ The production build and automated SEO checks passed for four pages. Checks pars
 
 The frontend suite passed: 20 tests across four files. New coverage includes homepage content before authentication loads, existing demo navigation, feature-page demo and sign-in entry, opening the workspace after sign-in, SSO callback URLs with and without a trailing slash, and hydration of the homepage and all three guides without replacing their headings.
 
-Desktop browser inspection confirmed the updated homepage and navigation to the CSV guide. Screenshots are in `doc/seo/`. Authentication was mocked for automated tests; a real sign-in and upload should be smoke-tested on the hosting preview using its existing environment settings. No performance score, mobile browser audit, actual indexing, rankings, or Google rich-result eligibility has been claimed.
+Desktop browser inspection confirmed the updated homepage and navigation to the CSV guide. Screenshots are in `doc/seo/`. Phone-width checks at 390 pixels confirmed that the homepage and CSV guide have no horizontal overflow, and the homepage layout was visually inspected. The Cloudflare preview loaded the real authentication form. HTTP checks confirmed the four public pages, the four-URL sitemap, and a real 404 for missing pages. A trailing-slash callback issue discovered during preview checks was corrected with an explicit rewrite and a dedicated noindex callback document. Completing a real sign-in and uploading private data were not part of the smoke test. No performance score, rankings, or Google rich-result eligibility has been claimed.
 
 ## Publish the changes
 

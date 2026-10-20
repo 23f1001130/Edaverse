@@ -8,6 +8,11 @@ const dist = resolve(frontend, 'dist')
 const template = await readFile(resolve(dist, 'index.html'), 'utf8')
 const escape = value => value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 
+// Redirect rules are evaluated before Cloudflare's response-header rules.
+// Keep noindex in the callback document itself as well as in headers.
+const callback = template.replace(/<!-- SEO_START -->[\s\S]*?<!-- SEO_END -->/, '<title>Signing in | edaverse</title><meta name="robots" content="noindex,nofollow" />')
+await writeFile(resolve(dist, 'auth-callback.html'), callback)
+
 for (const page of pages) {
   const url = `https://edaverse.app${page.path}`
   const head = `<title>${escape(page.title)}</title>
