@@ -188,3 +188,28 @@ def test_analysis_endpoints_check_owner_before_computing_or_reading_cache(storag
         response = client.get(f'/api/datasets/{record["id"]}/{suffix}')
     assert response.status_code == 404
     assert not progressive._cache_path(record).exists()
+
+
+def test_signing_in_does_not_hide_an_existing_guest_dataset(storage, monkeypatch):
+    import app.routers.eda as route
+    record, frame = dataset(storage, rows=10_007)
+    record.update(owner_id=None, access="anonymous")
+    store.save_dataset_record(record)
+    monkeypatch.setattr(route, "get_request_user_id", lambda request: "now-signed-in-alice")
+    with TestClient(app) as client:
+        response = client.get(f'/api/datasets/{record["id"]}/eda/stream')
+    assert response.status_code == 200
+    events = [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith("data: ")]
+    assert events[-1]["stage"] == "complete"
+    assert events[-1]["data"]["analysis"]["rows"] == len(frame)
+    assert store.get_dataset(record["id"])["owner_id"] is None  # No ownership transfer.
+
+
+def test_signing_in_as_another_user_still_cannot_read_owned_data(storage, monkeypatch):
+    import app.routers.eda as route
+    record, _ = dataset(storage, rows=10_007)
+    record.update(owner_id="owner-alice", access="user")
+    store.save_dataset_record(record)
+    monkeypatch.setattr(route, "get_request_user_id", lambda request: "owner-bob")
+    with TestClient(app) as client:
+        assert client.get(f'/api/datasets/{record["id"]}/eda/stream').status_code == 404

@@ -93,6 +93,44 @@ def test_upload_limits_and_clear_parse_error(isolated_storage, monkeypatch):
         assert "Could not read" in response.json()["detail"]
 
 
+def test_signed_in_identity_is_verified_before_parsing_and_retained_after_token_expires(isolated_storage, monkeypatch):
+    import app.routers.upload as route
+    parsed = False
+    checks = []
+    original_parse = route.parse_upload
+
+    def identity(request):
+        checks.append(parsed)
+        return None if parsed else "owner-alice"
+
+    def slow_parse(*args):
+        nonlocal parsed
+        result = original_parse(*args)
+        parsed = True  # The submitted short-lived JWT would now be expired.
+        return result
+
+    monkeypatch.setattr(route, "get_request_user_id", identity)
+    monkeypatch.setattr(route, "parse_upload", slow_parse)
+    with TestClient(app) as client:
+        response = client.post("/api/upload", files={"file": ("data.csv", b"value\n1\n2\n")}, headers={"Authorization": "Bearer valid-at-start"})
+    assert response.status_code == 200
+    assert response.json()["owner_id"] == "owner-alice"
+    assert response.json()["access"] == "user"
+    assert response.json()["expires_at"] is None
+    assert checks == [False]
+
+
+def test_invalid_upload_credentials_do_not_silently_create_guest_data(isolated_storage, monkeypatch):
+    import app.routers.upload as route
+    monkeypatch.setattr(route, "get_request_user_id", lambda request: None)
+    monkeypatch.setattr(route, "parse_upload", lambda *args: pytest.fail("Invalid identity must stop before parsing"))
+    with TestClient(app) as client:
+        response = client.post("/api/upload", files={"file": ("data.csv", b"value\n1\n")}, headers={"Authorization": "Bearer expired"})
+    assert response.status_code == 401
+    assert "sign-in expired" in response.json()["detail"]
+    assert not list(isolated_storage.iterdir())
+
+
 def test_processing_keeps_config_responsive_and_rejects_overlapping_uploads(isolated_storage, monkeypatch):
     from concurrent.futures import ThreadPoolExecutor
     from threading import Event

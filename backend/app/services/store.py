@@ -338,7 +338,11 @@ def get_dataset(dataset_id: str, user_id: str | None | object = _UNSET) -> dict 
     if data.get("access") == "anonymous" and expires and expires <= datetime.now(timezone.utc):
         delete_dataset(dataset_id)
         return None
-    if user_id is not _UNSET and not _owned_by(data, user_id):
+    # Guest datasets are already readable by their ID without authentication.
+    # Signing in must not make that same guest link unreadable. Owned/private
+    # records still require the exact owner; this does not claim or transfer data.
+    anonymous = not data.get("owner_id") and data.get("access", "anonymous") == "anonymous"
+    if user_id is not _UNSET and not anonymous and not _owned_by(data, user_id):
         return None
     return data
 

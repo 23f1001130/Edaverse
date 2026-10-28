@@ -26,6 +26,12 @@ def upload_file(
     file: UploadFile = File(...),
     header_row: Optional[str] = Form(None),
 ):
+    # Verify while the submitted token is current. Workbook decoding can take
+    # longer than a session JWT's remaining lifetime; identity must not change
+    # from signed-in to anonymous after that work has already succeeded.
+    owner_id = get_request_user_id(request)
+    if request.headers.get("authorization") and not owner_id:
+        raise HTTPException(status_code=401, detail="Your sign-in expired before the upload started. Please sign in again and retry.")
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
 
@@ -57,7 +63,7 @@ def upload_file(
         result = parse_upload(file.filename, file.file, size, hr)
         temp_path = result.get("_data_path")
         if result.get("success"):
-            result = save_dataset(result, owner_id=get_request_user_id(request))
+            result = save_dataset(result, owner_id=owner_id)
         return result
     except (pd.errors.ParserError, ValueError, UnicodeDecodeError, BadZipFile) as exc:
         raise HTTPException(status_code=400, detail=f"Could not read this dataset: {exc}") from exc

@@ -14,12 +14,19 @@ axios.interceptors.response.use(null, async (error) => {
   return axios(config)
 })
 
-export async function getAuthHeaders() {
+export async function getAuthHeaders({ fresh = false } = {}) {
   const headers = {}
   try {
-    const token = await window.Clerk?.session?.getToken()
+    const token = await window.Clerk?.session?.getToken(fresh ? { skipCache: true } : undefined)
     if (token) headers.Authorization = `Bearer ${token}`
-  } catch {}
+    else if (fresh && window.Clerk?.session) throw new Error('Your sign-in could not be verified. Please sign in again before uploading.')
+  } catch (error) {
+    if (fresh && window.Clerk?.session) {
+      const authError = new Error('Your sign-in could not be verified. Please sign in again before uploading.', { cause: error })
+      authError.code = 'UPLOAD_AUTH_REQUIRED'
+      throw authError
+    }
+  }
   try {
     headers['X-Request-ID'] = crypto.randomUUID()
   } catch {}
@@ -30,7 +37,7 @@ export async function uploadFile(file, onProgress, headerRow = null) {
   const form = new FormData()
   form.append('file', file)
   if (headerRow !== null) form.append('header_row', headerRow)
-  const headers = await getAuthHeaders()
+  const headers = await getAuthHeaders({ fresh: true })
 
   const res = await axios.post(`${BASE}/api/upload`, form, {
     headers,

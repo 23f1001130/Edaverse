@@ -15,6 +15,11 @@ const data = { filename: 'sample.csv', schema: [
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 describe('Analysis navigation', () => {
+  it('explains a missing or inaccessible dataset instead of hiding the server outcome', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({ detail: 'Dataset not found' }) }))
+    render(<WorkspaceResults data={{ ...data, id: 'missing-dataset' }} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('unavailable for the current session')
+  })
   it('shows the preview while processing continues and replaces it with full-data results', async () => {
     localStorage.setItem('edaverse_workspace_tour_seen', 'true')
     let finish
