@@ -1,0 +1,55 @@
+name: Backend container
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-image.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-image.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: backend-container-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  container:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build image
+        run: |
+          docker build --label org.opencontainers.image.source=https://github.com/${{ github.repository }} --label org.opencontainers.image.revision=${{ github.sha }} -t edaverse-api:test backend
+      - name: Start image as non-root
+        run: |
+          docker run -d --name edaverse-container-test -p 127.0.0.1:8000:8000 -e CORS_ALLOWED_ORIGINS=https://edaverse.app edaverse-api:test
+          test "$(docker exec edaverse-container-test id -u)" = "10001"
+      - name: Exercise container API
+        run: python backend/scripts/smoke_container.py
+      - name: Container logs and cleanup
+        if: always()
+        run: |
+          docker logs edaverse-container-test || true
+          docker rm -f edaverse-container-test || true
+      - name: Publish tested main image
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/edaverse-api"
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker tag edaverse-api:test "$IMAGE:sha-$GITHUB_SHA"
+          docker tag edaverse-api:test "$IMAGE:latest"
+          docker push "$IMAGE:sha-$GITHUB_SHA"
+          docker push "$IMAGE:latest"
+          docker logout ghcr.io
