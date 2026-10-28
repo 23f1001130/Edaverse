@@ -39,6 +39,7 @@ app = FastAPI(title="edaverse API", version="0.3.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(upload.UploadAuthenticationMiddleware)
 app.add_middleware(_RequestIDMiddleware)
 
 

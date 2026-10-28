@@ -1,10 +1,12 @@
 import io
+import asyncio
 import json
 import sys
 from pathlib import Path
 
 import pandas as pd
 import pytest
+import httpx
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -127,8 +129,63 @@ def test_invalid_upload_credentials_do_not_silently_create_guest_data(isolated_s
     with TestClient(app) as client:
         response = client.post("/api/upload", files={"file": ("data.csv", b"value\n1\n")}, headers={"Authorization": "Bearer expired"})
     assert response.status_code == 401
-    assert "sign-in expired" in response.json()["detail"]
+    assert "could not be verified" in response.json()["detail"]
     assert not list(isolated_storage.iterdir())
+
+
+def test_upload_authenticates_before_receiving_slow_multipart_body(isolated_storage, monkeypatch):
+    import app.routers.upload as route
+    body_started = False
+    checks = []
+
+    def identity(request):
+        checks.append(body_started)
+        # Model a token valid at request start, expired by the end of transfer.
+        return None if body_started else 'owner-slow-upload'
+
+    monkeypatch.setattr(route, 'get_request_user_id', identity)
+
+    async def run():
+        multipart = httpx.Request('POST', 'http://test/api/upload', files={'file': ('data.csv', b'value\n1\n2\n')})
+        body = multipart.read()
+
+        async def slow_body():
+            nonlocal body_started
+            assert checks == [False], 'Identity must be verified before the first file bytes are read'
+            body_started = True
+            yield body[:len(body) // 2]
+            await asyncio.sleep(0)
+            yield body[len(body) // 2:]
+
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+            return await client.post('/api/upload', content=slow_body(), headers={
+                'Content-Type': multipart.headers['Content-Type'], 'Authorization': 'Bearer valid-at-request-start',
+            })
+
+    response = asyncio.run(run())
+    assert response.status_code == 200, response.text
+    assert response.json()['owner_id'] == 'owner-slow-upload'
+    assert response.json()['access'] == 'user'
+    assert checks == [False]
+
+
+def test_invalid_upload_auth_is_rejected_without_reading_file_bytes(monkeypatch):
+    import app.routers.upload as route
+    monkeypatch.setattr(route, 'get_request_user_id', lambda request: None)
+    messages = []
+
+    async def unexpected_receive():
+        pytest.fail('Invalid credentials must be rejected before reading the request body')
+
+    async def unexpected_app(*args):
+        pytest.fail('Invalid credentials must not reach multipart parsing')
+
+    async def send(message):
+        messages.append(message)
+
+    scope = {'type': 'http', 'method': 'POST', 'path': '/api/upload', 'headers': [(b'authorization', b'Bearer invalid')]}
+    asyncio.run(route.UploadAuthenticationMiddleware(unexpected_app)(scope, unexpected_receive, send))
+    assert messages[0]['status'] == 401
 
 
 def test_processing_keeps_config_responsive_and_rejects_overlapping_uploads(isolated_storage, monkeypatch):
