@@ -11,7 +11,7 @@ for attempt in range(30):
         with urlopen(f"{BASE}/health", timeout=3) as response:
             assert json.load(response)["status"] == "ok"
         break
-    except (URLError, TimeoutError):
+    except (OSError, TimeoutError):
         if attempt == 29:
             raise
         time.sleep(1)

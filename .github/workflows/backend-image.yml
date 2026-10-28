@@ -29,7 +29,7 @@ jobs:
           persist-credentials: false
       - name: Build image
         run: |
-          docker build --label org.opencontainers.image.source=https://github.com/${{ github.repository }} --label org.opencontainers.image.revision=${{ github.sha }} -t edaverse-api:test backend
+          docker build -f backend/Dockerfile --label org.opencontainers.image.source=https://github.com/${{ github.repository }} --label org.opencontainers.image.revision=${{ github.sha }} --label org.opencontainers.image.licenses=MIT -t edaverse-api:test .
       - name: Start image as non-root
         run: |
           docker run -d --name edaverse-container-test -p 127.0.0.1:8000:8000 -e CORS_ALLOWED_ORIGINS=https://edaverse.app edaverse-api:test

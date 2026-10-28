@@ -8,14 +8,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TRUST_PROXY_AUTH_HEADERS=false
 
 WORKDIR /app
-COPY requirements.txt ./requirements.txt
+COPY backend/requirements.txt ./requirements.txt
+COPY LICENSE ./LICENSE
 RUN pip install --no-cache-dir -r requirements.txt
 
 RUN groupadd --gid 10001 edaverse \
     && useradd --uid 10001 --gid 10001 --no-create-home edaverse \
     && mkdir -p /app/data/datasets \
     && chown -R edaverse:edaverse /app/data
-COPY --chown=edaverse:edaverse app ./app
+COPY --chown=edaverse:edaverse backend/app ./app
 
 USER 10001:10001
 EXPOSE 8000

@@ -5,7 +5,7 @@ backend on port **8000**, with health checks at `/health`.
 
 ## Image
 
-Build locally with `docker build -t edaverse-api backend`. The Backend container
+Build locally with `docker build -f backend/Dockerfile -t edaverse-api .`. The Backend container
 workflow builds and tests pull requests, then publishes tested main builds to
 `ghcr.io/23f1001130/edaverse-api:latest` and an immutable `sha-<full-commit>` tag.
 New GHCR packages default to private; the repository owner must make this
