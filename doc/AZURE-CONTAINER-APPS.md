@@ -56,6 +56,7 @@ and secret references for credentials.
 | `R2_SECRET_ACCESS_KEY` | Existing R2 credential, secret reference |
 | `MAX_UPLOAD_MB` | `100` |
 | `EDA_STREAM_TIMEOUT_SECS` | `300` |
+| `XLSX_READER` | `calamine` (image default; use `openpyxl` for lower-memory fallback) |
 
 Also copy custom R2 endpoint/prefix/region settings, anonymous TTL, AI-provider
 settings and Sentry settings if present on the current backend. Do not create new

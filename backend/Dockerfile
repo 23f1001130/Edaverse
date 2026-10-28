@@ -6,6 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     APP_ENV=production \
     AUTH_TRUST_UNVERIFIED_JWT=false \
     TRUST_PROXY_AUTH_HEADERS=false
+ENV XLSX_READER=calamine
 
 WORKDIR /app
 COPY backend/requirements.txt ./requirements.txt

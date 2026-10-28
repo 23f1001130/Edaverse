@@ -11,7 +11,7 @@ Render logs for the failed request to establish the exact cause.
   uploads get a clear 503 rather than expanding several frames in memory.
 - Read the spooled upload directly. CSV/TSV/text and XLSX files at least 10 MiB are
   normalized to a temporary UTF-8 CSV without building a full dataframe. CSV uses
-  10,000-row chunks; XLSX uses openpyxl read-only iteration of the first worksheet.
+  10,000-row chunks; XLSX imports the first worksheet through the configured reader.
 - Preserve every parsed row in the active stored artifact and upload that artifact
   to R2 through the existing persistence path. The previous large-CSV path could
   persist only its 10,000-row schema sample.
@@ -49,3 +49,33 @@ Sampled charts are exploratory and may omit rare or late-occurring values.
 The deployment manifest uses Render's free plan. Free-instance cold starts and
 limited compute remain hosting constraints; upgrading compute requires a separate
 hosting decision. No hosting plan, billing, or security settings are changed here.
+
+## Native Excel reader on Azure
+
+The Docker image sets `XLSX_READER=calamine` and pins python-calamine 0.9.0.
+This accelerates XLSX files at least 10 MiB on the 1 vCPU / 2 GiB Azure instance.
+Non-container deployments default to the existing openpyxl reader, retaining the
+lower-memory behavior on Render. Set `XLSX_READER=openpyxl` to roll back without
+changing the image. Small files and other formats retain their existing paths.
+
+Calamine materializes the worksheet, so native reading is limited to compressed
+files up to 64 MiB, expanded archives up to 384 MiB and up to 8 million cells.
+Larger files use openpyxl. These guards are not a guarantee that every workbook
+fits within 2 GiB. Ingestion still admits one upload per process.
+
+An XML preflight preserves the worksheet dimensions and selects the first actual
+worksheet, including when chart sheets precede it. Workbooks with Excel error
+cells use openpyxl because Calamine converts those cells to empty strings.
+Native parse failures restart the output from scratch through openpyxl. Leading
+columns, header selection, dates, text IDs and trailing formatted cells are
+covered by parity tests. `profile.reader` reports the actual large-XLSX reader.
+
+A fresh local comparison on the same public 45,622,278-byte UCI Online Retail II
+workbook measured 20.90 s / 129.11 MiB peak for openpyxl and 14.26 s / 417.53 MiB
+for Calamine, including normalization, validation and profiling. Both produced
+the same complete CSV SHA-256
+`224f1c7548bc713088cf56ddf7c087ccdc6c07d6c8c3d2e58deb322a414c31b4`
+and identical schema hashes across 525,461 rows / 8 columns. These local numbers
+exclude network transfer and cloud persistence; hosted improvement must be measured
+after the Azure revision is updated. All 75 backend tests pass locally; the image
+workflow also checks native Excel ingestion inside the built Linux container.

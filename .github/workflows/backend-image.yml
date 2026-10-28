@@ -36,6 +36,8 @@ jobs:
           test "$(docker exec edaverse-container-test id -u)" = "10001"
       - name: Exercise container API
         run: python backend/scripts/smoke_container.py
+      - name: Exercise native Excel reader in image
+        run: docker exec -i edaverse-container-test python - < backend/scripts/smoke_excel_reader.py
       - name: Container logs and cleanup
         if: always()
         run: |

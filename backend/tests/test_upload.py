@@ -56,7 +56,9 @@ def test_streamed_tsv_reparse_respects_header_and_preserves_values(isolated_stor
     assert result["shape"]["rows"] == 2
 
 
-def test_streamed_excel_retains_all_rows_and_header_selection(isolated_storage):
+@pytest.mark.parametrize("reader", ["openpyxl", "calamine"])
+def test_streamed_excel_retains_all_rows_and_header_selection(isolated_storage, monkeypatch, reader):
+    monkeypatch.setenv("XLSX_READER", reader)
     from openpyxl import Workbook
     source = io.BytesIO()
     workbook = Workbook(write_only=True)
@@ -68,6 +70,7 @@ def test_streamed_excel_retains_all_rows_and_header_selection(isolated_storage):
     workbook.save(source)
     result = parser.parse_upload("retail.xlsx", source, source.tell(), header_row=1)
     assert result["shape"] == {"rows": 10005, "columns": 2}
+    assert result["profile"]["reader"] == reader
     assert result["schema"][1]["null_count"] == 1
     persisted = pd.read_csv(result["_data_path"], dtype=str)
     assert persisted.iloc[-1]["code"] == "010004"

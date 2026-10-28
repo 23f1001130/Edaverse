@@ -103,6 +103,7 @@ def parse_upload(filename, source, size, header_row=None):
     source.seek(0)
     path = None
     sheet_count = 1
+    excel_reader = None
     try:
         # Normalize the complete file to UTF-8 CSV in bounded chunks. Text dtype
         # avoids losing leading zeros or changing types between chunk boundaries.
@@ -111,24 +112,8 @@ def parse_upload(filename, source, size, header_row=None):
         total = 0
         with open(path, "w", encoding="utf-8", newline="") as output:
             if ext == "xlsx":
-                from openpyxl import load_workbook
-                workbook = load_workbook(source, read_only=True, data_only=True)
-                try:
-                    sheet_count = len(workbook.worksheets)
-                    writer = csv.writer(output)
-                    preview = []
-                    for index, row in enumerate(workbook.worksheets[0].iter_rows(values_only=True)):
-                        if index < 8:
-                            preview.append(row)
-                        if index >= (header_row or 0):
-                            writer.writerow(row)
-                            total += 1
-                    total = max(0, total - 1)
-                    preview_text = io.StringIO()
-                    csv.writer(preview_text).writerows(preview)
-                    prefix = preview_text.getvalue().encode("utf-8")
-                finally:
-                    workbook.close()
+                from app.services.excel import write_xlsx_csv
+                total, prefix, sheet_count, excel_reader = write_xlsx_csv(source, size, output, header_row)
             else:
                 with pd.read_csv(source, sep=delimiter, encoding=encoding,
                                  encoding_errors="replace", header=header_row if header_row is not None else 0,
@@ -152,6 +137,8 @@ def parse_upload(filename, source, size, header_row=None):
                       header_row=header_row, shape={"rows": total, "columns": len(schema)},
                       _data_path=path,
                       profile={"sampled": total > len(sample_df), "rows": len(sample_df), "total_rows": total})
+        if excel_reader:
+            result["profile"]["reader"] = excel_reader
         result["warnings"] = [f"Large dataset: types and detailed statistics use the first {len(sample_df):,} rows. Row and missing-value counts cover all {total:,} rows. All parsed rows are retained."]
         if sheet_count > 1:
             result["warnings"].append(f"Workbook contains {sheet_count} sheets. Only the first worksheet was imported.")
