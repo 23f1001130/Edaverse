@@ -95,4 +95,12 @@ describe('Uploader size limits', () => {
     await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.stringMatching(/Connection.*interrupted/)))
     expect(uploadFile).toHaveBeenCalledTimes(1)
   })
+
+  it('explains an expired sign-in without calling it a network failure', async () => {
+    uploadFile.mockRejectedValue(Object.assign(new Error('Please sign in again before uploading.'), { code: 'UPLOAD_AUTH_REQUIRED' }))
+    const onError = vi.fn()
+    render(<Uploader onResult={vi.fn()} onError={onError} loading={false} setLoading={vi.fn()} />)
+    await userEvent.upload(document.querySelector('input[type="file"]'), makeFile(1))
+    await waitFor(() => expect(onError).toHaveBeenCalledWith('Please sign in again before uploading.'))
+  })
 })

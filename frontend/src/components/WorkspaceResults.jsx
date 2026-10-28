@@ -59,6 +59,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
   const [edaRunning, setEdaRunning] = useState(true)
   const [edaStage, setEdaStage] = useState({ label: 'Initializing…', progress: 0 })
   const [edaError, setEdaError] = useState(false)
+  const [edaErrorMessage, setEdaErrorMessage] = useState('')
   const [narrativeOpen, setNarrativeOpen] = useState(false)
   const [showTour, setShowTour] = useState(false)
   const edaAbortRef = useRef(null)
@@ -82,6 +83,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
     setEdaLoading(true)
     setEdaRunning(true)
     setEdaError(false)
+    setEdaErrorMessage('')
     setEdaStage({ label: 'Initializing…', progress: 0 })
 
     getAuthHeaders().then(headers => {
@@ -90,7 +92,10 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
         .then(r => {
           if (controller.signal.aborted) return
           if (!r.ok || !r.body) {
-            return r.json().catch(() => ({})).then(() => { if (!controller.signal.aborted) { setEdaError(true); setEdaLoading(false); setEdaRunning(false) } })
+            return r.json().catch(() => ({})).then(body => { if (!controller.signal.aborted) {
+              setEdaErrorMessage(r.status === 404 ? 'This dataset is unavailable for the current session. Open it from History or sign in with the account that uploaded it.' : body.detail || `The analysis server returned HTTP ${r.status}.`)
+              setEdaError(true); setEdaLoading(false); setEdaRunning(false)
+            } })
           }
           const reader = r.body.getReader()
           const dec = new TextDecoder()
@@ -133,7 +138,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
                       }
                     }
                   }
-                  if (ev.stage === 'error') { setEdaError(true); setEdaLoading(false); setEdaRunning(false) }
+                  if (ev.stage === 'error') { setEdaErrorMessage(ev.data?.error || 'The server interrupted analysis.'); setEdaError(true); setEdaLoading(false); setEdaRunning(false) }
                 } catch {}
               }
               return pump()
@@ -379,6 +384,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
             </div>}
             {edaError && <div className="wr-analysis-error" role="alert">
               <span>We couldn’t finish the full analysis. Any results shown are partial. Retry without uploading your file again.</span>
+              {edaErrorMessage && <span>{edaErrorMessage}</span>}
               <button type="button" className="wr-export-btn" onClick={() => refreshEda()}>Retry analysis</button>
             </div>}
             {edaLoading && tab !== 'Cleaning Report' && tab !== 'Feature Engineering' && tab !== 'Steps Applied' ? (

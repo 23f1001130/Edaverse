@@ -80,7 +80,8 @@ export default function Uploader({ onResult, onError, loading, setLoading }) {
       else onError(data.error || 'Parse failed')
     } catch (err) {
       const detail = err.response?.data?.detail
-      if (typeof detail === 'string') onError(detail)
+      if (err.code === 'UPLOAD_AUTH_REQUIRED') onError(err.message)
+      else if (typeof detail === 'string') onError(detail)
       else if (!err.response) onError('Connection to the processing server was interrupted. The server may be restarting or the connection timed out. Please retry; if it keeps failing, try a smaller file or CSV instead of Excel.')
       else onError(`Upload failed (HTTP ${err.response.status}). Please retry.`)
     } finally {
