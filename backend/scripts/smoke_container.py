@@ -1,5 +1,6 @@
 """Exercise the built image through HTTP, including its writable dataset path."""
 import json
+import os
 import time
 from urllib.request import Request, urlopen
 from urllib.error import URLError
@@ -9,7 +10,9 @@ BASE = "http://127.0.0.1:8000"
 for attempt in range(30):
     try:
         with urlopen(f"{BASE}/health", timeout=3) as response:
-            assert json.load(response)["status"] == "ok"
+            health = json.load(response)
+            assert health["status"] == "ok"
+            assert health["version"] == os.getenv("GITHUB_SHA", "development")
         break
     except (OSError, TimeoutError):
         if attempt == 29:
