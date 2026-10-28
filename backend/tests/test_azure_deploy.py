@@ -46,8 +46,15 @@ def test_multiple_revision_mode_is_rejected_before_patch():
         deploy.image_patch(original, "edaverse-api", "new-image", "suffix")
 
 
+def test_express_patch_omits_custom_revision_suffix():
+    payload, _ = deploy.image_patch(app(), "edaverse-api", "new-image", "suffix", express=True)
+    assert "revisionSuffix" not in payload["properties"]["template"]
+    assert payload["properties"]["template"]["containers"][0]["image"] == "new-image"
+
+
 @pytest.mark.parametrize("fail_new_health", [False, True])
-def test_rollout_verifies_version_and_restores_image_on_failure(monkeypatch, fail_new_health):
+@pytest.mark.parametrize("express", [False, True])
+def test_rollout_verifies_version_and_restores_image_on_failure(monkeypatch, fail_new_health, express):
     current = app()
     patches, health_calls = [], []
     sha = "a" * 40
@@ -65,9 +72,9 @@ def test_rollout_verifies_version_and_restores_image_on_failure(monkeypatch, fai
 
     monkeypatch.setattr(deploy, "arm", arm)
     monkeypatch.setattr(deploy, "check_health", health)
-    monkeypatch.setattr(deploy, "wait_ready", lambda *args: None)
+    monkeypatch.setattr(deploy, "wait_ready", lambda *args, **kwargs: None)
     args = ("/subscriptions/test/resourceGroups/edaverse-rg/providers/Microsoft.App/containerApps/edaverse-api",
-            "edaverse-api", f"ghcr.io/23f1001130/edaverse-api:sha-{sha}", sha, "123", "1")
+            "edaverse-api", f"ghcr.io/23f1001130/edaverse-api:sha-{sha}", sha, "123", "1", express)
     if fail_new_health:
         with pytest.raises(RuntimeError, match="previous image was restored"):
             deploy.deploy(*args)
@@ -157,4 +164,16 @@ def test_readiness_does_not_accept_an_older_ready_revision(monkeypatch):
     monkeypatch.setattr(deploy, "arm", lambda *args: calls.append(True) or next(snapshots))
     monkeypatch.setattr(deploy.time, "sleep", lambda *args: None)
     deploy.wait_ready("url", "new")
+    assert len(calls) == 2
+
+
+def test_express_readiness_waits_for_the_new_image_without_revision_fields(monkeypatch):
+    snapshots = iter([
+        {"properties": {"provisioningState": "Succeeded", "runningStatus": "Running", "template": {"containers": [{"name": "edaverse-api", "image": "old"}]}}},
+        {"properties": {"provisioningState": "Succeeded", "runningStatus": "Running", "template": {"containers": [{"name": "edaverse-api", "image": "new"}]}}},
+    ])
+    calls = []
+    monkeypatch.setattr(deploy, "arm", lambda *args: calls.append(True) or next(snapshots))
+    monkeypatch.setattr(deploy.time, "sleep", lambda *args: None)
+    deploy.wait_ready("url", "unused", express_image="new")
     assert len(calls) == 2

@@ -31,7 +31,7 @@ def arm(method, url, payload=None):
     return json.loads(response.stdout) if response.stdout.strip() else {}
 
 
-def image_patch(app, container_name, image, suffix):
+def image_patch(app, container_name, image, suffix, express=False):
     if app.get("properties", {}).get("configuration", {}).get("activeRevisionsMode", "Single") != "Single":
         raise ValueError("Automatic rollout requires the app's Single revision mode.")
     template = copy.deepcopy(app["properties"]["template"])
@@ -40,11 +40,14 @@ def image_patch(app, container_name, image, suffix):
         raise ValueError("The configured Azure container name was not found uniquely.")
     previous = targets[0]["image"]
     targets[0]["image"] = image
-    template["revisionSuffix"] = suffix
+    if express:
+        template.pop("revisionSuffix", None)
+    else:
+        template["revisionSuffix"] = suffix
     return {"location": app["location"], "properties": {"template": template}}, previous
 
 
-def wait_ready(url, revision, timeout=300):
+def wait_ready(url, revision, timeout=300, *, express_image=None, container="edaverse-api"):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         app = arm("get", url)
@@ -52,7 +55,11 @@ def wait_ready(url, revision, timeout=300):
         state = properties.get("provisioningState")
         if state in ("Failed", "Canceled"):
             raise RuntimeError("Azure could not provision the new revision.")
-        if (state == "Succeeded" and properties.get("latestRevisionName") == revision
+        if express_image:
+            images = {item["name"]: item["image"] for item in properties.get("template", {}).get("containers", [])}
+            if state == "Succeeded" and properties.get("runningStatus") == "Running" and images.get(container) == express_image:
+                return
+        elif (state == "Succeeded" and properties.get("latestRevisionName") == revision
                 and properties.get("latestReadyRevisionName") == revision):
             return
         time.sleep(5)
@@ -74,7 +81,7 @@ def check_health(base, version=None, timeout=90):
     raise TimeoutError("The release did not pass the public health, MongoDB and version checks.")
 
 
-def deploy(resource_id, container, image, sha, run_id, attempt):
+def deploy(resource_id, container, image, sha, run_id, attempt, express=False):
     if not re.fullmatch(r"[0-9a-f]{40}", sha):
         raise ValueError("A full Git commit SHA is required.")
     if image != f"ghcr.io/23f1001130/edaverse-api:sha-{sha}":
@@ -90,7 +97,7 @@ def deploy(resource_id, container, image, sha, run_id, attempt):
     base = "https://" + host
     # Baseline must work before replacing anything; don't obscure existing outages.
     baseline = check_health(base) or {}
-    payload, previous_image = image_patch(before, container, image, suffix)
+    payload, previous_image = image_patch(before, container, image, suffix, express)
     # A mutable 'latest' tag has already moved when CI publishes a new build.
     # Rollback must use an immutable image of the version actually running.
     baseline_version = baseline.get("version")
@@ -102,16 +109,19 @@ def deploy(resource_id, container, image, sha, run_id, attempt):
     name = before["name"]
     try:
         arm("patch", url, payload)
-        wait_ready(url, f"{name}--{suffix}")
+        wait_ready(url, f"{name}--{suffix}", **({"express_image": image, "container": container} if express else {}))
         check_health(base, version=sha)
     except Exception as failure:
         current = arm("get", url)
-        if current.get("properties", {}).get("template", {}).get("revisionSuffix") != suffix:
+        template = current.get("properties", {}).get("template", {})
+        image_current = next((item.get("image") for item in template.get("containers", []) if item["name"] == container), None)
+        matches = image_current == image if express else template.get("revisionSuffix") == suffix
+        if not matches:
             raise RuntimeError("Release failed; the app was changed separately, so automatic rollback was skipped.") from failure
         rollback_suffix = suffix + "-rb"
-        rollback, _ = image_patch(current, container, previous_image, rollback_suffix)
+        rollback, _ = image_patch(current, container, previous_image, rollback_suffix, express)
         arm("patch", url, rollback)
-        wait_ready(url, f"{name}--{rollback_suffix}")
+        wait_ready(url, f"{name}--{rollback_suffix}", **({"express_image": previous_image, "container": container} if express else {}))
         check_health(base, version=baseline_version if baseline_version and re.fullmatch(r"[0-9a-f]{40}", baseline_version) else None)
         raise RuntimeError("Release verification failed. The previous image was restored successfully.") from failure
     print(f"Deployed and verified {sha[:12]} to {name}.")
@@ -129,5 +139,6 @@ if __name__ == "__main__":
     arguments.add_argument("--sha", required=True)
     arguments.add_argument("--run-id", required=True)
     arguments.add_argument("--attempt", required=True)
+    arguments.add_argument("--express", action="store_true", help="Use Express rolling updates without custom revision suffixes")
     options = arguments.parse_args()
-    deploy(options.resource_id, options.container, options.image, options.sha, options.run_id, options.attempt)
+    deploy(options.resource_id, options.container, options.image, options.sha, options.run_id, options.attempt, options.express)

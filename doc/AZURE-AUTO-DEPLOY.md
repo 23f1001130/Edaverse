@@ -42,6 +42,7 @@ repository Actions **variables**:
 | `AZURE_TENANT_ID` | Tenant ID printed by setup |
 | `AZURE_SUBSCRIPTION_ID` | Subscription ID printed by setup |
 | `AZURE_DEPLOY_ENABLED` | `true`, after reviewing the connection |
+| `AZURE_ENVIRONMENT_MODE` | `express` for the current Edaverse environment; omit for a standard environment |
 
 Then run the Backend container workflow once on main. After its first successful
 Azure deployment, normal pushes to main that change backend code deploy
@@ -50,7 +51,11 @@ PR workflows only test, with no Azure ID-token permission or production deployme
 
 ## Rollout and rollback
 
-The app must use Single revision mode, as in the current deployment. Before the
+The app must use Single revision mode, as in the current deployment. Express
+environments use image-based rolling updates without custom revision suffixes or
+`latestReadyRevisionName`. The script checks the configured image and running
+state, then requires the exact build commit from the live `/health` response.
+Standard environments retain revision-specific readiness checks. Before the
 first automatic deployment, its current image must be pinned to a known immutable
 `sha-<full-commit>` tag or digest. A legacy `latest` image with no running-version
 field cannot be used as a safe rollback target because publishing moves that tag.
@@ -67,7 +72,7 @@ The workflow:
 3. Publishes `sha-<commit>` and `latest` only after these checks pass.
 4. Obtains a short-lived Azure login using GitHub OIDC.
 5. Reads the existing app template and patches only the selected container image
-   and a unique revision suffix. Environment variables, secret references,
+   and a unique revision suffix (omitted on Express). Environment variables, secret references,
    CPU/memory, scaling and health probes are preserved. App configuration/secrets
    are not copied into the request.
 6. Waits for the intended new revision to become ready, then checks the public
@@ -106,3 +111,4 @@ Sources:
 - [GitHub OIDC in Azure](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure-openid-connect)
 - [Azure app PATCH contract](https://learn.microsoft.com/en-us/rest/api/resource-manager/containerapps/container-apps/update?view=rest-resource-manager-containerapps-2025-07-01)
 - [Azure custom roles](https://learn.microsoft.com/en-us/azure/role-based-access-control/custom-roles)
+- [Express image-based deployments](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/container-apps-workflows)
