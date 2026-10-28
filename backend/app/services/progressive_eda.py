@@ -355,7 +355,7 @@ def _snapshot(dataset, full, reservoir, final=False):
             column.update(full.numeric[column["column"]].stats())
             column["abs_skewness"] = abs(column["skewness"]) if column["skewness"] is not None else None
             column["null_pct"] = round(full.nulls[column["column"]] / full.rows * 100, 1)
-    result["numeric_profile"]["skewed_count"] = sum((column["abs_skewness"] or 0) > 1 for column in result["numeric_profile"]["columns"])
+    result["numeric_profile"]["skewed_count"] = sum(abs(summary.stats()["skewness"] or 0) > 1 for summary in full.numeric.values())
     # Categorical triage uses the same complete counts as its bar charts.
     for column in result["categorical_profile"]["columns"]:
         unique, count, values = full.category(column["column"])

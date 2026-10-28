@@ -165,6 +165,7 @@ function Expanded({ d, onClose }) {
           <div className="stat-box"><div className="stat-box-label">Non-null count</div><div className="stat-box-value" style={{fontSize:'20px'}}>{d.cat_stats.count}</div></div>
         </div>
       )}
+      {d.other_count > 0 && <p className="wr-analysis-sample">Showing the top {d.values.length} of {d.total_unique.toLocaleString()} values. Another {d.other_count.toLocaleString()} non-null rows belong to the remaining categories.</p>}
     </div>
   )
 }

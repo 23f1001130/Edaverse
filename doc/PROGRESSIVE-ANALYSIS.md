@@ -16,7 +16,9 @@ and offers retry without uploading again. Small datasets complete directly.
 | Pearson correlations | All pairwise-complete finite numeric rows, up to 40 numeric columns |
 | Missing counts | All rows and columns |
 | Missingness co-occurrence | All rows, first 40 dataset columns |
-| Median/quartiles, boxplots, outlier checks, Spearman, numeric triage, observations, PCA, scatter points and pivot heatmap | A deterministic uniform reservoir of up to 10,000 rows across the dataset; individual visualizations may display fewer points |
+| Numeric triage mean/std/skewness and null rates | All rows; its unique/outlier counts remain sampled |
+| Median/quartiles, boxplots, outlier checks, Spearman, PCA, scatter points and pivot heatmap | A deterministic uniform reservoir of up to 10,000 rows across the dataset; individual visualizations may display fewer points |
+| Automated observations | Full-data missing/skew/correlation summaries; sampled uniqueness/outlier checks are qualified in their text |
 
 The sampled views are labelled in the workspace and exported HTML report. Numeric
 distribution details specifically distinguish sampled quantiles/boxplots from
