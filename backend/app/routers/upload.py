@@ -8,9 +8,30 @@ from zipfile import BadZipFile
 from app.services.store import save_dataset
 from app.services.auth import get_request_user_id
 from app.services.limiter import limiter
+from starlette.concurrency import run_in_threadpool
+from starlette.responses import JSONResponse
 
 router = APIRouter()
 _upload_lock = threading.Lock()
+
+
+class UploadAuthenticationMiddleware:
+    """Verify request headers before FastAPI consumes a slow multipart upload."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope['type'] == 'http' and scope.get('method') == 'POST' and scope.get('path', '').rstrip('/') == '/api/upload':
+            request = Request(scope)
+            # JWKS lookup can use the network; keep it off the event loop.
+            owner_id = await run_in_threadpool(get_request_user_id, request)
+            if request.headers.get('authorization') and not owner_id:
+                response = JSONResponse(status_code=401, content={'detail': 'Your sign-in could not be verified. Please refresh the page and sign in again.'})
+                await response(scope, receive, send)
+                return
+            scope.setdefault('state', {})['upload_owner_id'] = owner_id
+        await self.app(scope, receive, send)
 
 
 def _max_upload_bytes() -> int:
@@ -26,12 +47,9 @@ def upload_file(
     file: UploadFile = File(...),
     header_row: Optional[str] = Form(None),
 ):
-    # Verify while the submitted token is current. Workbook decoding can take
-    # longer than a session JWT's remaining lifetime; identity must not change
-    # from signed-in to anonymous after that work has already succeeded.
-    owner_id = get_request_user_id(request)
-    if request.headers.get("authorization") and not owner_id:
-        raise HTTPException(status_code=401, detail="Your sign-in expired before the upload started. Please sign in again and retry.")
+    # Identity was verified before multipart transfer, not after its token may
+    # have expired during transfer or decoding. Never reverify that same token.
+    owner_id = request.state.upload_owner_id
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
 
