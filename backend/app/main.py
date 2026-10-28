@@ -98,10 +98,11 @@ def health():
 
 @app.get("/api/config")
 def get_app_config():
+    from app.services.parser import SMALL_FILE_THRESHOLD
     return {
         "ai_provider": os.getenv("AI_PROVIDER", "ollama"),
         "max_upload_mb": int(os.getenv("MAX_UPLOAD_MB", "100")),
-        "large_file_threshold_mb": int(os.getenv("LARGE_FILE_THRESHOLD_MB", "50")),
+        "large_file_threshold_mb": SMALL_FILE_THRESHOLD // (1024 * 1024),
         "anonymous_ttl_hours": _anonymous_ttl_hours(),
     }
 

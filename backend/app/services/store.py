@@ -139,8 +139,16 @@ def save_dataset(parse_result: dict, owner_id: str | None = None) -> dict:
 
     # Extract and save the dataframe separately
     df = parse_result.pop("_df", None)
+    data_path = parse_result.pop("_data_path", None)
     storage = {"backend": "local", "artifacts": []}
-    if df is not None:
+    if data_path is not None:
+        csv_path = DATASETS_DIR / f"{dataset_id}.csv"
+        data_path.replace(csv_path)
+        key = upload_dataset_artifact(dataset_id, csv_path)
+        storage["artifacts"].append({"kind": "active", "format": "csv", "local": csv_path.name, "r2_key": key})
+        if key:
+            storage["backend"] = "r2+local-cache"
+    elif df is not None:
         try:
             parquet = _parquet_path(dataset_id)
             df.to_parquet(parquet, index=False)

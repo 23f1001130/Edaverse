@@ -2,6 +2,7 @@ import io
 import csv
 import json
 import logging
+import tempfile
 from pathlib import Path
 import chardet
 import pandas as pd
@@ -13,7 +14,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 SAMPLE_ROWS = 5
 
-SMALL_FILE_THRESHOLD = 50 * 1024 * 1024  # 50MB — below this, load fully
+SMALL_FILE_THRESHOLD = 10 * 1024 * 1024
 CHUNK_SIZE = 10_000  # rows per chunk for large files
 SAMPLE_SIZE = 10_000  # rows to sample for schema inference on large files
 TEXT_EXTENSIONS = ("csv", "tsv", "txt", "", "json")
@@ -25,7 +26,7 @@ def _finite_numeric(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
 
 
-def _compute_stats_chunked(filepath_or_buffer, delimiter: str, encoding: str, schema_cols: list) -> dict:
+def _compute_stats_chunked(filepath_or_buffer, delimiter: str, encoding: str, schema_cols: list, strict=False, numeric_cols=None) -> dict:
     """Compute null counts and numeric stats over a large CSV in chunks.
     Returns {col: {null_count, total, min, max, sum, count}} for numeric cols."""
     stats = {c: {"null_count": 0, "total": 0, "min": None, "max": None,
@@ -33,7 +34,7 @@ def _compute_stats_chunked(filepath_or_buffer, delimiter: str, encoding: str, sc
     try:
         for chunk in pd.read_csv(
             filepath_or_buffer, sep=delimiter, encoding=encoding,
-            chunksize=CHUNK_SIZE, on_bad_lines="skip", low_memory=True
+            chunksize=CHUNK_SIZE, on_bad_lines="error" if strict else "skip", low_memory=True
         ):
             for col in schema_cols:
                 if col not in chunk.columns:
@@ -41,6 +42,8 @@ def _compute_stats_chunked(filepath_or_buffer, delimiter: str, encoding: str, sc
                 s = stats[col]
                 s["total"] += len(chunk[col])
                 s["null_count"] += int(chunk[col].isna().sum())
+                if numeric_cols is not None and col not in numeric_cols:
+                    continue
                 numeric = _finite_numeric(chunk[col])
                 if len(numeric) > 0:
                     cmin = float(numeric.min())
@@ -50,7 +53,8 @@ def _compute_stats_chunked(filepath_or_buffer, delimiter: str, encoding: str, sc
                     s["sum"] += float(numeric.sum())
                     s["count"] += len(numeric)
     except (pd.errors.ParserError, OSError, UnicodeDecodeError, ValueError, KeyError, TypeError):
-        pass
+        if strict:
+            raise
     return stats
 
 
@@ -64,7 +68,7 @@ def _patch_schema_with_chunked_stats(schema: list, stats: dict) -> list:
         if s["total"] > 0:
             col_info["null_count"] = s["null_count"]
             col_info["null_pct"] = round(s["null_count"] / s["total"] * 100, 1)
-        if s["count"] > 0:
+        if s["count"] > 0 and col_info.get("type") in ("integer", "float"):
             col_info["min"] = round(s["min"], 4) if s["min"] is not None else None
             col_info["max"] = round(s["max"], 4) if s["max"] is not None else None
             col_info["mean"] = round(s["sum"] / s["count"], 4)
@@ -73,11 +77,98 @@ def _patch_schema_with_chunked_stats(schema: list, stats: dict) -> list:
 
 
 def detect_encoding(contents: bytes) -> dict:
-    detected = chardet.detect(contents)
+    detected = chardet.detect(contents[:65536])
     return {
         "encoding": detected.get("encoding") or "utf-8",
         "confidence": round(detected.get("confidence") or 0.0, 2),
     }
+
+
+def parse_upload(filename, source, size, header_row=None):
+    """Process a spooled upload without expanding large text files in memory."""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    source.seek(0)
+    if size < SMALL_FILE_THRESHOLD or ext not in ("csv", "tsv", "txt", "", "xlsx"):
+        return parse_file(filename, source.read(), header_row)
+
+    prefix = source.read(65536)
+    enc_info = {"encoding": None, "confidence": 1.0} if ext == "xlsx" else detect_encoding(prefix)
+    encoding = enc_info["encoding"]
+    try:
+        if ext == "xlsx":
+            raise csv.Error()
+        delimiter = csv.Sniffer().sniff(prefix[:4096].decode(encoding, errors="replace")).delimiter
+    except csv.Error:
+        delimiter = "\t" if ext == "tsv" else ","
+    source.seek(0)
+    path = None
+    sheet_count = 1
+    try:
+        # Normalize the complete file to UTF-8 CSV in bounded chunks. Text dtype
+        # avoids losing leading zeros or changing types between chunk boundaries.
+        with tempfile.NamedTemporaryFile(dir=DATA_DIR, suffix=".csv", delete=False) as tmp:
+            path = Path(tmp.name)
+        total = 0
+        with open(path, "w", encoding="utf-8", newline="") as output:
+            if ext == "xlsx":
+                from openpyxl import load_workbook
+                workbook = load_workbook(source, read_only=True, data_only=True)
+                try:
+                    sheet_count = len(workbook.worksheets)
+                    writer = csv.writer(output)
+                    preview = []
+                    for index, row in enumerate(workbook.worksheets[0].iter_rows(values_only=True)):
+                        if index < 8:
+                            preview.append(row)
+                        if index >= (header_row or 0):
+                            writer.writerow(row)
+                            total += 1
+                    total = max(0, total - 1)
+                    preview_text = io.StringIO()
+                    csv.writer(preview_text).writerows(preview)
+                    prefix = preview_text.getvalue().encode("utf-8")
+                finally:
+                    workbook.close()
+            else:
+                with pd.read_csv(source, sep=delimiter, encoding=encoding,
+                                 encoding_errors="replace", header=header_row if header_row is not None else 0,
+                                 chunksize=CHUNK_SIZE, dtype=str, on_bad_lines="error") as reader:
+                    for chunk in reader:
+                        chunk.to_csv(output, index=False, header=total == 0)
+                        total += len(chunk)
+        # Profile only a bounded frame, but count missing values and basic numeric
+        # statistics across every row. The persisted file contains ALL rows.
+        sample_df = pd.read_csv(path, nrows=SAMPLE_SIZE)
+        result = parse_file("sample.csv", sample_df.to_csv(index=False).encode("utf-8"), header_row=0)
+        if not result.get("success"):
+            raise ValueError(result.get("error", "No readable columns in dataset"))
+        result.pop("_df", None)
+        schema = result["schema"]
+        stats = _compute_stats_chunked(path, ",", "utf-8", [c["name"] for c in schema], strict=True,
+            numeric_cols={c["name"] for c in schema if c["type"] in ("integer", "float")})
+        total = max((s["total"] for s in stats.values()), default=total)
+        result["schema"] = _patch_schema_with_chunked_stats(schema, stats)
+        result.update(filename=filename, file_extension=ext, encoding=enc_info,
+                      header_row=header_row, shape={"rows": total, "columns": len(schema)},
+                      _data_path=path,
+                      profile={"sampled": total > len(sample_df), "rows": len(sample_df), "total_rows": total})
+        result["warnings"] = [f"Large dataset: types and detailed statistics use the first {len(sample_df):,} rows. Row and missing-value counts cover all {total:,} rows. All parsed rows are retained."]
+        if sheet_count > 1:
+            result["warnings"].append(f"Workbook contains {sheet_count} sheets. Only the first worksheet was imported.")
+        raw_ext, raw_encoding = ("csv", "utf-8") if ext == "xlsx" else (ext, encoding)
+        result["raw_rows"] = get_raw_rows(prefix, raw_ext, raw_encoding)
+        result["header_suggestion"] = None
+        if header_row is None:
+            detected, confidence = detect_header_row(prefix, raw_ext, raw_encoding, sample_df)
+            if detected is not None:
+                result["header_suggestion"] = {"suggested_row": detected, "confidence": confidence,
+                    "preview": result["raw_rows"][detected]["cells"][:6],
+                    "message": f"Row {detected} may contain the column names."}
+        return result
+    except Exception:
+        if path is not None:
+            path.unlink(missing_ok=True)
+        raise
 
 
 def infer_column_type(series: pd.Series) -> str:
