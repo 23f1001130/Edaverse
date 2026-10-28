@@ -91,6 +91,8 @@ def test_setup_limits_trust_to_main_and_role_to_one_app(monkeypatch, capsys):
             return {"location": "uaenorth"}
         if args[:2] == ("identity", "create"):
             return {"clientId": "client-id", "principalId": "principal-id"}
+        if args[:3] == ("role", "definition", "create"):
+            return {"id": "/subscriptions/subscription-id/providers/Microsoft.Authorization/roleDefinitions/azure-generated-id"}
         return []
 
     monkeypatch.setattr(setup, "az", az)
@@ -103,7 +105,37 @@ def test_setup_limits_trust_to_main_and_role_to_one_app(monkeypatch, capsys):
     assert set(definition["Actions"]) == {"Microsoft.App/containerApps/read", "Microsoft.App/containerApps/write"}
     assignment = next(call for call in calls if call[:3] == ("role", "assignment", "create"))
     assert assignment[assignment.index("--scope") + 1] == "/subscriptions/subscription-id/resourceGroups/edaverse-rg/providers/Microsoft.App/containerApps/edaverse-api"
+    assert assignment[assignment.index("--role") + 1].endswith("/azure-generated-id")
     assert "AZURE_CLIENT_ID=client-id" in capsys.readouterr().out
+
+
+def test_setup_reuses_the_existing_reviewed_role(monkeypatch):
+    setup = load("setup_azure_deploy")
+    calls = []
+    group = "/subscriptions/subscription-id/resourceGroups/edaverse-rg"
+
+    def az(*args):
+        calls.append(args)
+        if args[:2] == ("account", "show"):
+            return {"id": "subscription-id", "tenantId": "tenant-id"}
+        if args[0] == "rest":
+            return {"location": "uaenorth"}
+        if args[:2] == ("identity", "list"):
+            return [{"name": setup.IDENTITY, "clientId": "client-id", "principalId": "principal-id"}]
+        if args[:3] == ("identity", "federated-credential", "list"):
+            return [{"name": "github-main", "issuer": setup.ISSUER, "subject": setup.SUBJECT,
+                     "audiences": ["api://AzureADTokenExchange"]}]
+        if args[:3] == ("role", "definition", "list"):
+            return [{"id": "existing-role-id", "roleName": "Edaverse image deployer",
+                     "permissions": [{"actions": setup.ACTIONS}], "assignableScopes": [group]}]
+        if "create" in args and args[:3] != ("role", "assignment", "create"):
+            pytest.fail("Existing identities and roles must be reused")
+        return []
+
+    monkeypatch.setattr(setup, "az", az)
+    setup.setup()
+    assignment = next(call for call in calls if call[:3] == ("role", "assignment", "create"))
+    assert assignment[assignment.index("--role") + 1] == "existing-role-id"
 
 
 def test_unknown_mutable_previous_image_is_rejected_without_deploying(monkeypatch):

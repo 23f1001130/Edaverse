@@ -6,7 +6,6 @@ It creates no client secret and does not read/copy application credentials.
 """
 import json
 import subprocess
-import uuid
 
 REPOSITORY = "23f1001130/Edaverse"
 RESOURCE_GROUP = "edaverse-rg"
@@ -45,21 +44,26 @@ def setup():
         az("identity", "federated-credential", "create", "--resource-group", RESOURCE_GROUP,
            "--identity-name", IDENTITY, "--name", "github-main", "--issuer", ISSUER,
            "--subject", SUBJECT, "--audiences", "api://AzureADTokenExchange")
-    role_id = str(uuid.uuid5(uuid.NAMESPACE_URL, resource.lower() + "/github-image-deployer"))
+    role_name = "Edaverse image deployer"
     roles = [role for role in az("role", "definition", "list", "--custom-role-only", "true", "--scope", group)
-             if role.get("name") == role_id]
+             if role.get("roleName") == role_name]
+    if len(roles) > 1:
+        raise RuntimeError("More than one deployment role has this name. Review before assigning access.")
     if roles:
         permissions = roles[0]["permissions"]
         if (len(permissions) != 1 or {action.lower() for action in permissions[0].get("actions", [])} != {action.lower() for action in ACTIONS}
                 or permissions[0].get("dataActions") or permissions[0].get("notActions")
                 or [scope.lower() for scope in roles[0]["assignableScopes"]] != [group.lower()]):
             raise RuntimeError("The existing deployment role differs. Review it before assigning access.")
+        role_id = roles[0]["id"]
     else:
-        az("role", "definition", "create", "--role-definition", json.dumps({
-            "Name": "Edaverse image deployer", "Id": role_id, "IsCustom": True,
+        created = az("role", "definition", "create", "--role-definition", json.dumps({
+            "Name": role_name, "IsCustom": True,
             "Description": "Read and update the existing Edaverse container app for GitHub releases.",
             "Actions": ACTIONS, "NotActions": [], "DataActions": [], "NotDataActions": [],
             "AssignableScopes": [group]}))
+        # Azure generates this identifier; a caller-supplied Id is not preserved.
+        role_id = created["id"]
     assignments = az("role", "assignment", "list", "--assignee-object-id", identity["principalId"],
                      "--scope", resource, "--role", role_id)
     if not assignments:
