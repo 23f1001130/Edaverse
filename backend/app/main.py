@@ -94,7 +94,7 @@ def health():
     except (OSError, RuntimeError, ValueError) as exc:
         logger.warning("Health storage check failed: %s: %s", type(exc).__name__, exc)
         info = {"storage": "local", "datasets_count": 0}
-    return {"status": "ok", **info}
+    return {"status": "ok", "version": os.getenv("APP_VERSION", "development"), **info}
 
 @app.get("/api/config")
 def get_app_config():

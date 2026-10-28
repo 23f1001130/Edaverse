@@ -15,7 +15,8 @@ on:
 
 concurrency:
   group: backend-container-${{ github.ref }}
-  cancel-in-progress: true
+  # Don't interrupt a production rollout when a newer main commit arrives.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   container:
@@ -29,15 +30,20 @@ jobs:
           persist-credentials: false
       - name: Build image
         run: |
-          docker build -f backend/Dockerfile --label org.opencontainers.image.source=https://github.com/${{ github.repository }} --label org.opencontainers.image.revision=${{ github.sha }} --label org.opencontainers.image.licenses=MIT -t edaverse-api:test .
+          docker build -f backend/Dockerfile --build-arg APP_VERSION="$GITHUB_SHA" --label org.opencontainers.image.source=https://github.com/${{ github.repository }} --label org.opencontainers.image.revision=${{ github.sha }} --label org.opencontainers.image.licenses=MIT -t edaverse-api:test .
       - name: Start image as non-root
         run: |
-          docker run -d --name edaverse-container-test -p 127.0.0.1:8000:8000 -e CORS_ALLOWED_ORIGINS=https://edaverse.app edaverse-api:test
+          docker run -d --name edaverse-container-test -p 127.0.0.1:8000:8000 -v "$GITHUB_WORKSPACE/backend/tests:/app/tests:ro" -v "$GITHUB_WORKSPACE/backend/scripts:/app/scripts:ro" -e CORS_ALLOWED_ORIGINS=https://edaverse.app edaverse-api:test
           test "$(docker exec edaverse-container-test id -u)" = "10001"
       - name: Exercise container API
         run: python backend/scripts/smoke_container.py
       - name: Exercise native Excel reader in image
         run: docker exec -i edaverse-container-test python - < backend/scripts/smoke_excel_reader.py
+      - name: Run regression tests in the Linux image
+        run: |
+          # Test tools go into this disposable container layer, never the published image.
+          docker exec --user root edaverse-container-test python -m pip install --quiet pytest
+          docker exec edaverse-container-test python -m pytest /app/tests -q -p no:cacheprovider
       - name: Container logs and cleanup
         if: always()
         run: |
@@ -55,3 +61,37 @@ jobs:
           docker push "$IMAGE:sha-$GITHUB_SHA"
           docker push "$IMAGE:latest"
           docker logout ghcr.io
+      - name: Explain pending Azure connection
+        if: github.ref == 'refs/heads/main' && vars.AZURE_DEPLOY_ENABLED != 'true'
+        run: echo 'Image published. Azure auto-deployment awaits the one-time OIDC connection in doc/AZURE-AUTO-DEPLOY.md.' >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy Azure production
+    needs: container
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.AZURE_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: edaverse-api-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Sign in to Azure with GitHub OIDC
+        uses: Azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Roll out and verify the immutable image
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          python backend/scripts/deploy_azure.py \
+            --resource-id "/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/edaverse-rg/providers/Microsoft.App/containerApps/edaverse-api" \
+            --image "ghcr.io/23f1001130/edaverse-api:sha-$GITHUB_SHA" \
+            --sha "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT"
