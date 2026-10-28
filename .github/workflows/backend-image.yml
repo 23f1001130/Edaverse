@@ -90,8 +90,11 @@ jobs:
       - name: Roll out and verify the immutable image
         env:
           AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_ENVIRONMENT_MODE: ${{ vars.AZURE_ENVIRONMENT_MODE }}
         run: |
+          MODE_ARGS=()
+          if [ "$AZURE_ENVIRONMENT_MODE" = "express" ]; then MODE_ARGS+=(--express); fi
           python backend/scripts/deploy_azure.py \
             --resource-id "/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/edaverse-rg/providers/Microsoft.App/containerApps/edaverse-api" \
             --image "ghcr.io/23f1001130/edaverse-api:sha-$GITHUB_SHA" \
-            --sha "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT"
+            --sha "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT" "${MODE_ARGS[@]}"
