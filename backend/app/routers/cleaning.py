@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import uuid
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -96,6 +97,7 @@ def _refresh_schema_in_store(dataset_id: str, df):
     rows = [{k: san(v) for k, v in r.items()} for r in rows]
 
     data["schema"] = schema
+    data["data_revision"] = str(uuid.uuid4())
     data["shape"] = {"rows": len(df), "columns": len(df.columns)}
     data["sample_rows"] = rows
     return save_dataset_record(data)

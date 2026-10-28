@@ -140,6 +140,7 @@ function Expanded({ d, onClose }) {
       </ResponsiveContainer>
       {isHist && d.stats && (
         <>
+          {d.quantiles_sampled && <p className="wr-analysis-sample">Median, quartiles and the boxplot use a {d.sample_rows?.toLocaleString()}-row sample drawn across the rows analyzed so far. Histogram counts and the other summary statistics include every processed row.</p>}
           <div className="tab-grid-4" style={{marginTop:16}}>
             {[['Mean','mean'],['Std Dev','std'],['Min','min'],['Max','max'],['Median','median'],['Q1','q25'],['Q3','q75'],['Skewness','skewness']].map(([l,k])=>(
               <div key={k} className="stat-box">
@@ -164,6 +165,7 @@ function Expanded({ d, onClose }) {
           <div className="stat-box"><div className="stat-box-label">Non-null count</div><div className="stat-box-value" style={{fontSize:'20px'}}>{d.cat_stats.count}</div></div>
         </div>
       )}
+      {d.other_count > 0 && <p className="wr-analysis-sample">Showing the top {d.values.length} of {d.total_unique.toLocaleString()} values. Another {d.other_count.toLocaleString()} non-null rows belong to the remaining categories.</p>}
     </div>
   )
 }

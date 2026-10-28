@@ -21,11 +21,12 @@ def _enabled() -> bool:
     return bool(_endpoint_url()) and all(os.getenv(k) for k in required)
 
 
-def _client():
+def _client(optional_cache=False):
     if not _enabled():
         return None
     try:
         import boto3
+        from botocore.config import Config
     except Exception:
         return None
     return boto3.client(
@@ -34,6 +35,7 @@ def _client():
         aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID"),
         aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY"),
         region_name=os.getenv("R2_REGION", "auto"),
+        **({"config": Config(connect_timeout=2, read_timeout=3, retries={"total_max_attempts": 1})} if optional_cache else {}),
     )
 
 
@@ -42,8 +44,8 @@ def object_key(dataset_id: str, path: Path) -> str:
     return f"{prefix}/{dataset_id}/{path.name}"
 
 
-def upload_dataset_artifact(dataset_id: str, path: Path) -> str | None:
-    client = _client()
+def upload_dataset_artifact(dataset_id: str, path: Path, *, optional_cache=False) -> str | None:
+    client = _client(optional_cache)
     if client is None or not path.exists():
         return None
     key = object_key(dataset_id, path)
@@ -54,14 +56,18 @@ def upload_dataset_artifact(dataset_id: str, path: Path) -> str | None:
         return None
 
 
-def download_dataset_artifact(dataset_id: str, filename: str, destination: Path) -> bool:
-    client = _client()
+def download_dataset_artifact(dataset_id: str, filename: str, destination: Path, *, optional_cache=False) -> bool:
+    client = _client(optional_cache)
     if client is None:
         return False
     key = object_key(dataset_id, Path(filename))
     try:
         destination.parent.mkdir(parents=True, exist_ok=True)
-        client.download_file(os.getenv("R2_BUCKET"), key, str(destination))
+        options = {}
+        if optional_cache:
+            from boto3.s3.transfer import TransferConfig
+            options["Config"] = TransferConfig(num_download_attempts=1, use_threads=False)
+        client.download_file(os.getenv("R2_BUCKET"), key, str(destination), **options)
         return destination.exists()
     except Exception:
         return False

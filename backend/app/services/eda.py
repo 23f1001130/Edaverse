@@ -39,6 +39,11 @@ def _load_df(dataset: dict, max_rows=None) -> pd.DataFrame:
     raw_path = DATA_DIR / f"{dataset_id}.parquet"
     csv_path = DATA_DIR / f"{dataset_id}.csv"
     csv_active = dataset.get("storage", {}).get("active_format") == "csv"
+    if csv_active:
+        if not csv_path.exists():
+            ensure_dataset_file(dataset_id, csv_path.name)
+        if csv_path.exists():
+            return pd.read_csv(csv_path, nrows=max_rows)
     if not raw_path.exists():
         if csv_active and not csv_path.exists():
             ensure_dataset_file(dataset_id, csv_path.name)
@@ -201,7 +206,7 @@ def compute_distributions(df: pd.DataFrame, schema: list) -> list:
             try:
                 parsed = pd.to_datetime(series, errors="coerce").dropna()
                 if len(parsed) > 0:
-                    by_period = parsed.dt.to_period("M").value_counts().sort_index()
+                    by_period = parsed.dt.tz_localize(None).dt.to_period("M").value_counts().sort_index()
                     timeline = [
                         {"period": str(p), "count": int(c)}
                         for p, c in by_period.items()
@@ -744,7 +749,7 @@ def compute_target_analysis(dataset: dict, target: str) -> dict:
     return final
 
 
-def compute_observations(df: pd.DataFrame, schema: list, correlation: dict, outliers: list) -> list:
+def compute_observations(df: pd.DataFrame, schema: list, correlation: dict, outliers: list, sampled=False) -> list:
     obs = []
 
     # Missing data
@@ -767,7 +772,7 @@ def compute_observations(df: pd.DataFrame, schema: list, correlation: dict, outl
             if total > 0 and df[c["name"]].nunique() == total and total == len(df):
                 obs.append({
                     "type": "key", "severity": "info",
-                    "text": f'{c["name"]} is fully unique with no nulls — likely a primary key, safe to use as an index.'
+                    "text": (f'{c["name"]} is unique with no nulls in the sample. Verify full-data uniqueness before using it as a primary key.' if sampled else f'{c["name"]} is fully unique with no nulls — likely a primary key, safe to use as an index.')
                 })
                 break
 
@@ -812,7 +817,7 @@ def compute_observations(df: pd.DataFrame, schema: list, correlation: dict, outl
     for o in outliers[:3]:
         obs.append({
             "type": "outlier", "severity": "medium",
-            "text": f'{o["column"]} has {o["count"]} outliers ({o["pct"]}%) outside '
+            "text": f'{o["column"]} has {o["count"]} outliers ({o["pct"]}%)' + (f' in the {len(df):,}-row sample' if sampled else '') + ' outside '
                     f'[{o["bounds"]["lower"]} – {o["bounds"]["upper"]}], e.g. {o["examples"]}.'
         })
 
@@ -842,12 +847,12 @@ def compute_nulls(df: pd.DataFrame, schema: list, total_rows=None) -> list:
     ]
 
 
-def compute_eda(dataset: dict) -> dict:
-    df, schema, analysis = prepare_eda_frame(dataset)
+def compute_eda_frame(dataset, df, schema, analysis):
     if df.empty:
         return {"error": "No data available for EDA"}
-    correlation = compute_correlation(df, schema, "pearson")
-    spearman = compute_correlation(df, schema, "spearman")
+    pair_schema = [column for column in schema if column.get("type") in ("integer", "float")][:40]
+    correlation = compute_correlation(df, pair_schema, "pearson")
+    spearman = compute_correlation(df, pair_schema, "spearman")
     outliers = compute_outliers(df, schema)
 
     return {
@@ -861,10 +866,18 @@ def compute_eda(dataset: dict) -> dict:
         "scatter_pairs": compute_scatter_pairs(df, schema, correlation),
         "outliers": outliers,
         "nulls": compute_nulls(df, dataset.get("schema", []), dataset.get("shape", {}).get("rows", len(df))),
-        "missingness": compute_missingness_cooccurrence(df, schema),
+        "missingness": compute_missingness_cooccurrence(df, schema[:40]),
         "missingness_matrix": compute_missingness_matrix(df, schema),
         "numeric_profile": compute_numeric_profile(df, schema, outliers),
         "categorical_profile": compute_categorical_profile(df, schema),
         "pca": compute_pca_projection(df, schema),
         "pivot_heatmap": compute_pivot_heatmap(df, schema),
     }
+
+
+def compute_eda(dataset: dict) -> dict:
+    from app.services.progressive_eda import stream_analysis
+    for event in stream_analysis(dataset):
+        if event["stage"] == "complete":
+            return event["data"]
+    return {"error": "No data available for EDA"}

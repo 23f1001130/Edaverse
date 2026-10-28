@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import WorkspaceResults from './WorkspaceResults.jsx'
@@ -15,6 +15,42 @@ const data = { filename: 'sample.csv', schema: [
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 describe('Analysis navigation', () => {
+  it('shows the preview while processing continues and replaces it with full-data results', async () => {
+    localStorage.setItem('edaverse_workspace_tour_seen', 'true')
+    let finish
+    const encode = event => new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`)
+    const read = vi.fn()
+      .mockResolvedValueOnce({ done: false, value: encode({ stage: 'preview', progress: .03, label: 'Preview ready', data: {
+        analysis: { status: 'preview', rows: 10000, total_rows: 525461 },
+      } }) })
+      .mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+      .mockResolvedValueOnce({ done: true })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body: { getReader: () => ({ read }) } }))
+    render(<WorkspaceResults data={{ ...data, id: 'progressive' }} />)
+    expect(await screen.findByRole('note')).toHaveTextContent('Preview: first 10,000 of 525,461 rows')
+    expect(await screen.findByText('Dataset overview')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Full dataset analysis' })).toBeInTheDocument()
+    await act(async () => finish({ done: false, value: encode({ stage: 'complete', progress: 1, data: {
+      analysis: { status: 'complete', full_metrics: ['histograms'], rows: 525461, sample_rows: 10000 },
+    } }) }))
+    expect(screen.getByRole('note')).toHaveTextContent('Full dataset analyzed: 525,461 rows')
+    expect(screen.getByRole('note')).toHaveTextContent('sample drawn across the dataset')
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+  })
+
+  it('keeps the preview and offers retry when the stream closes before completion', async () => {
+    localStorage.setItem('edaverse_workspace_tour_seen', 'true')
+    const read = vi.fn()
+      .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('data: {"stage":"preview","progress":0.03,"data":{"analysis":{"status":"preview","rows":10000,"total_rows":500000}}}\n\n') })
+      .mockResolvedValueOnce({ done: true })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body: { getReader: () => ({ read }) } }))
+    render(<WorkspaceResults data={{ ...data, id: 'interrupted' }} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Any results shown are partial')
+    expect(screen.getByRole('note')).toHaveTextContent('Preview: first 10,000')
+    expect(await screen.findByText('Dataset overview')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Retry analysis' })).toBeInTheDocument()
+  })
+
   it('discloses when charts use a preview of the retained full dataset', async () => {
     localStorage.setItem('edaverse_workspace_tour_seen', 'true')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body: { getReader: () => ({ read: vi.fn()
