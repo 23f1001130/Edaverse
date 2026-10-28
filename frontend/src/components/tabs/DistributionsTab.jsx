@@ -140,6 +140,7 @@ function Expanded({ d, onClose }) {
       </ResponsiveContainer>
       {isHist && d.stats && (
         <>
+          {d.quantiles_sampled && <p className="wr-analysis-sample">Median, quartiles and the boxplot use a {d.sample_rows?.toLocaleString()}-row sample drawn across the rows analyzed so far. Histogram counts and the other summary statistics include every processed row.</p>}
           <div className="tab-grid-4" style={{marginTop:16}}>
             {[['Mean','mean'],['Std Dev','std'],['Min','min'],['Max','max'],['Median','median'],['Q1','q25'],['Q3','q75'],['Skewness','skewness']].map(([l,k])=>(
               <div key={k} className="stat-box">

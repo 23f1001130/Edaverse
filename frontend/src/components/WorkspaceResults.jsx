@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react'
 import HeaderPicker from './HeaderPicker.jsx'
+import AnalysisScope from './AnalysisScope.jsx'
 import ToastContainer from './ToastContainer.jsx'
 import { fireToast, getSetting, TOUR_REPLAY_EVENT } from '../services/toast.js'
 import './WorkspaceResults.css'
@@ -55,6 +56,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
   const [activeCol, setActiveCol] = useState(null)
   const [eda, setEda] = useState(null)
   const [edaLoading, setEdaLoading] = useState(true)
+  const [edaRunning, setEdaRunning] = useState(true)
   const [edaStage, setEdaStage] = useState({ label: 'Initializing…', progress: 0 })
   const [edaError, setEdaError] = useState(false)
   const [narrativeOpen, setNarrativeOpen] = useState(false)
@@ -72,27 +74,37 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
     return () => window.removeEventListener(TOUR_REPLAY_EVENT, handle)
   }, [])
 
-  function refreshEda() {
-    if (!data?.id) return
+  function refreshEda(dataset = data) {
+    if (!dataset?.id) return
     if (edaAbortRef.current) edaAbortRef.current.abort()
     const controller = new AbortController()
     edaAbortRef.current = controller
     setEdaLoading(true)
+    setEdaRunning(true)
     setEdaError(false)
     setEdaStage({ label: 'Initializing…', progress: 0 })
 
     getAuthHeaders().then(headers => {
-      fetch(`${BASE}/api/datasets/${data.id}/eda/stream`, { headers, signal: controller.signal })
+      if (controller.signal.aborted) return
+      fetch(`${BASE}/api/datasets/${dataset.id}/eda/stream`, { headers, signal: controller.signal })
         .then(r => {
+          if (controller.signal.aborted) return
           if (!r.ok || !r.body) {
-            return r.json().catch(() => ({})).then(d => { setEda(d); setEdaError(true); setEdaLoading(false) })
+            return r.json().catch(() => ({})).then(() => { if (!controller.signal.aborted) { setEdaError(true); setEdaLoading(false); setEdaRunning(false) } })
           }
           const reader = r.body.getReader()
           const dec = new TextDecoder()
           let buf = ''
+          let completed = false
           function pump() {
             return reader.read().then(({ done, value }) => {
-              if (done) { setEdaLoading(false); return }
+              if (controller.signal.aborted) return
+              if (done) {
+                setEdaLoading(false)
+                setEdaRunning(false)
+                if (!completed) setEdaError(true)
+                return
+              }
               buf += dec.decode(value, { stream: true })
               const lines = buf.split('\n')
               buf = lines.pop()
@@ -101,9 +113,15 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
                 try {
                   const ev = JSON.parse(line.slice(6))
                   setEdaStage({ label: ev.label || ev.stage, progress: ev.progress })
-                  if (ev.progress >= 1.0 && ev.data) {
+                  if (['preview', 'batch'].includes(ev.stage) && ev.data) {
                     setEda(ev.data)
                     setEdaLoading(false)
+                  }
+                  if (ev.progress >= 1.0 && ev.data) {
+                    completed = true
+                    setEda(ev.data)
+                    setEdaLoading(false)
+                    setEdaRunning(false)
                     if (!edaDoneRef.current) {
                       edaDoneRef.current = true
                       if (getSetting('notifications.eda_complete', true)) {
@@ -115,7 +133,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
                       }
                     }
                   }
-                  if (ev.stage === 'error') { setEdaError(true); setEdaLoading(false) }
+                  if (ev.stage === 'error') { setEdaError(true); setEdaLoading(false); setEdaRunning(false) }
                 } catch {}
               }
               return pump()
@@ -123,7 +141,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
           }
           return pump()
         })
-        .catch(err => { if (err.name !== 'AbortError') { setEdaError(true); setEdaLoading(false) } })
+        .catch(err => { if (!controller.signal.aborted && err.name !== 'AbortError') { setEdaError(true); setEdaLoading(false); setEdaRunning(false) } })
     })
   }
 
@@ -146,7 +164,23 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
 
   function handleDataUpdate(updated) {
     if (updated) { setData(updated); setActiveCol(null); }
-    refreshEda()
+    refreshEda(updated || data)
+  }
+
+  async function downloadReport() {
+    try {
+      const headers = await getAuthHeaders()
+      const response = await fetch(`${BASE}/api/datasets/${data.id}/report`, { headers })
+      if (!response.ok) throw new Error('Report unavailable')
+      const url = URL.createObjectURL(await response.blob())
+      const link = document.createElement('a')
+      link.href = url
+      link.download = (data.filename?.replace(/\.[^.]+$/, '') || 'dataset') + '_eda_report.html'
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 30000)
+    } catch {
+      fireToast('Could not generate the report. Please try again.', 'error')
+    }
   }
 
   async function openNotebookInColab() {
@@ -178,8 +212,10 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
   }
 
   useEffect(() => {
-    if (!data.id) { setEdaLoading(false); setEdaError(false); return }
+    setEda(null)
+    if (!data.id) { setEdaLoading(false); setEdaRunning(false); setEdaError(false); return }
     refreshEda()
+    return () => edaAbortRef.current?.abort()
   }, [data.id])
 
   const filteredCols = data.schema.filter(c =>
@@ -197,7 +233,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
           <span className="wr-bc-file">{data.filename}</span>
           {(() => {
             if (edaError) return <span className="wr-eda-badge error">EDA unavailable</span>
-            if (edaLoading) return <span className="wr-eda-badge running">{edaStage.label}</span>
+            if (edaRunning) return <span className="wr-eda-badge running">{edaStage.label}</span>
             const milestones = [
               { label: 'EDA analyzed',          done: eda !== null },
               { label: 'Distributions explored', done: visitedTabs.has('Distributions') },
@@ -253,7 +289,7 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
             </svg>
             Export
           </button>
-          <button className="wr-export-btn" onClick={() => data.id && window.open(`${BASE}/api/datasets/${data.id}/report`, '_blank')} title="HTML Report">
+          <button className="wr-export-btn" onClick={downloadReport} title="HTML Report">
             <svg className="wr-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
@@ -334,12 +370,16 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
           </div>
 
           <div className="wr-tab-content" id="workspace-tabpanel" role="tabpanel" aria-labelledby={`workspace-tab-${TABS.indexOf(tab)}`} tabIndex={0}>
-            {eda?.analysis?.sampled && <p className="wr-analysis-sample" role="note">
-              Charts and advanced metrics use the first {eda.analysis.rows.toLocaleString()} of {eda.analysis.total_rows.toLocaleString()} rows for faster loading. Total row and missing-value counts cover the full dataset. All parsed rows are retained.
-            </p>}
+            {['Overview', 'Distributions', 'Correlations'].includes(tab) && <AnalysisScope analysis={eda?.analysis} />}
+            {edaRunning && eda && <div className="wr-analysis-progress" role="status" aria-live="polite">
+              <span>{edaStage.label}</span>
+              <div className="wr-progress-bar" role="progressbar" aria-label="Full dataset analysis" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(edaStage.progress * 100)}>
+                <div className="wr-progress-fill" style={{ width: `${Math.round(edaStage.progress * 100)}%` }} />
+              </div>
+            </div>}
             {edaError && <div className="wr-analysis-error" role="alert">
-              <span>We couldn’t finish the analysis. Retry without uploading your file again.</span>
-              <button type="button" className="wr-export-btn" onClick={refreshEda}>Retry analysis</button>
+              <span>We couldn’t finish the full analysis. Any results shown are partial. Retry without uploading your file again.</span>
+              <button type="button" className="wr-export-btn" onClick={() => refreshEda()}>Retry analysis</button>
             </div>}
             {edaLoading && tab !== 'Cleaning Report' && tab !== 'Feature Engineering' && tab !== 'Steps Applied' ? (
               <div className="wr-loading">

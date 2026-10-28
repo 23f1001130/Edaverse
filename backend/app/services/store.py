@@ -179,6 +179,7 @@ def save_dataset(parse_result: dict, owner_id: str | None = None) -> dict:
     record = {
         "id": dataset_id,
         "saved_at": now,
+        "data_revision": str(uuid.uuid4()),
         "owner_id": owner_id,
         "access": "user" if owner_id else "anonymous",
         "expires_at": expires_at,

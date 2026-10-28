@@ -47,6 +47,7 @@ export default function CorrelationsTab({ eda }) {
     <div>
       {corr && (
         <div className="panel" style={{marginBottom:16}}>
+          {corr.scope === 'sample' && <p className="wr-analysis-sample">Spearman correlations use a {corr.sample_rows?.toLocaleString()}-row sample drawn across the dataset. Select Pearson for correlations across all processed rows.</p>}
           {/* Controls bar */}
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:12,flexWrap:'wrap'}}>
             <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>

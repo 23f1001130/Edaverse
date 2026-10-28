@@ -37,3 +37,24 @@ with urlopen(f'{BASE}/api/datasets/{dataset["id"]}/eda/stream', timeout=20) as r
 assert events[-1]["stage"] == "complete", events[-1]
 assert events[-1]["data"]["analysis"]["rows"] == 3
 print("Container smoke passed: health, CORS, upload, Parquet persistence, streamed EDA")
+
+# A second, larger fixture exercises the actual HTTP preview/batch/final flow.
+# It remains tiny on disk; the tail intentionally changes the chart distribution.
+content = "value,group\n" + "1,early\n" * 10000 + "100,late\n" * 1007
+body = (f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="file"; filename="progressive-smoke.csv"\r\n'
+        "Content-Type: text/csv\r\n\r\n" + content + f"\r\n--{boundary}--\r\n").encode()
+with urlopen(Request(f"{BASE}/api/upload", data=body,
+                     headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}), timeout=30) as response:
+    large = json.load(response)
+with urlopen(f'{BASE}/api/datasets/{large["id"]}/eda/stream', timeout=30) as response:
+    events = [json.loads(line[6:]) for line in response.read().decode().splitlines() if line.startswith("data: ")]
+assert any(event["stage"] == "preview" for event in events)
+assert events[-1]["stage"] == "complete", events[-1]
+full = events[-1]["data"]
+assert full["analysis"]["processed_rows"] == 11007
+groups = next(chart for chart in full["distributions"] if chart["column"] == "group")
+assert {entry["value"]: entry["count"] for entry in groups["values"]} == {"early": 10000, "late": 1007}
+with urlopen(f'{BASE}/api/datasets/{large["id"]}/eda', timeout=10) as response:
+    assert json.load(response)["analysis"]["cached"]
+print("Container progressive smoke passed: preview, full tail counts, cached reopen")
