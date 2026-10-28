@@ -334,6 +334,9 @@ export default function WorkspaceResults({ data: initialData, onReparse, reparsi
           </div>
 
           <div className="wr-tab-content" id="workspace-tabpanel" role="tabpanel" aria-labelledby={`workspace-tab-${TABS.indexOf(tab)}`} tabIndex={0}>
+            {eda?.analysis?.sampled && <p className="wr-analysis-sample" role="note">
+              Charts and advanced metrics use the first {eda.analysis.rows.toLocaleString()} of {eda.analysis.total_rows.toLocaleString()} rows for faster loading. Total row and missing-value counts cover the full dataset. All parsed rows are retained.
+            </p>}
             {edaError && <div className="wr-analysis-error" role="alert">
               <span>We couldn’t finish the analysis. Retry without uploading your file again.</span>
               <button type="button" className="wr-export-btn" onClick={refreshEda}>Retry analysis</button>

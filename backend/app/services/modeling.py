@@ -579,6 +579,7 @@ table{{border-collapse:separate;border-spacing:0;width:100%;overflow:hidden;bord
     <p class="eyebrow">Dataflow analyst report</p>
     <h1>{esc(dataset.get('filename', 'Dataset'))}</h1>
     <p class="subtitle">A decision-ready EDA summary focused on data quality, modelling readiness, feature risk, and the next analysis moves a senior analyst would check before presenting or training models.</p>
+    {('<p class="subtitle">Charts and advanced metrics use the first ' + str(eda['analysis']['rows']) + ' rows. Row and missing-value counts cover the full dataset.</p>') if eda.get('analysis', {}).get('sampled') else ''}
     <div class="type-row">{type_cards}</div>
   </div>
   <aside class="score-card" style="--score-angle:{health_score * 3.6:.1f}deg;--score-color:var(--{'success' if health_tone == 'good' else 'warning' if health_tone == 'warn' else 'danger'});">

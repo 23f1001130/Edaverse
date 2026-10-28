@@ -394,3 +394,4 @@
     padding-right: 16px;
   }
 }
+.wr-analysis-sample { padding: 12px 16px; margin-bottom: 16px; border: 1px solid var(--border-default); border-radius: 8px; background: var(--accent-glow); color: var(--text-secondary); font-size: 13px; line-height: 1.6; }

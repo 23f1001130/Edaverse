@@ -13,14 +13,6 @@ const ACCEPTED = {
   'application/octet-stream': ['.parquet'],
 }
 
-const STEPS = [
-  'Detecting encoding',
-  'Inferring schema',
-  'Analysing columns',
-  'Computing statistics',
-  'Generating profile',
-]
-
 function GridIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -28,14 +20,6 @@ function GridIcon() {
       <rect x="14" y="3" width="7" height="7" rx="1"/>
       <rect x="3" y="14" width="7" height="7" rx="1"/>
       <rect x="14" y="14" width="7" height="7" rx="1"/>
-    </svg>
-  )
-}
-
-function CheckIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12"/>
     </svg>
   )
 }
@@ -52,9 +36,10 @@ function UploadIcon() {
 
 export default function Uploader({ onResult, onError, loading, setLoading }) {
   const [filename, setFilename] = useState('')
-  const [stepIndex, setStepIndex] = useState(0)
+  const [progress, setProgress] = useState(null)
+  const [elapsed, setElapsed] = useState(0)
   const [maxUploadMb, setMaxUploadMb] = useState(100)
-  const [largeFileThresholdMb, setLargeFileThresholdMb] = useState(50)
+  const [largeFileThresholdMb, setLargeFileThresholdMb] = useState(10)
 
   useEffect(() => {
     fetchConfig()
@@ -66,10 +51,10 @@ export default function Uploader({ onResult, onError, loading, setLoading }) {
   }, [])
 
   useEffect(() => {
-    if (!loading) { setStepIndex(0); return }
+    if (!loading) { setElapsed(0); return }
     const timer = setInterval(() => {
-      setStepIndex(i => Math.min(i + 1, STEPS.length - 1))
-    }, 700)
+      setElapsed(i => i + 1)
+    }, 1000)
     return () => clearInterval(timer)
   }, [loading])
 
@@ -87,13 +72,17 @@ export default function Uploader({ onResult, onError, loading, setLoading }) {
     }
 
     setFilename(file.name)
+    setProgress(0)
     setLoading(true)
     try {
-      const data = await uploadFile(file)
+      const data = await uploadFile(file, setProgress)
       if (data.success) onResult(data, file)
       else onError(data.error || 'Parse failed')
     } catch (err) {
-      onError(err.response?.data?.detail || err.message || 'Upload failed')
+      const detail = err.response?.data?.detail
+      if (typeof detail === 'string') onError(detail)
+      else if (!err.response) onError('Connection to the processing server was interrupted. The server may be restarting or the connection timed out. Please retry; if it keeps failing, try a smaller file or CSV instead of Excel.')
+      else onError(`Upload failed (HTTP ${err.response.status}). Please retry.`)
     } finally {
       setLoading(false)
     }
@@ -110,26 +99,15 @@ export default function Uploader({ onResult, onError, loading, setLoading }) {
           <div className="up-proc-icon"><GridIcon /></div>
           <div className="up-proc-info">
             <div className="up-proc-name">{filename || 'Uploading…'}</div>
-            <div className="up-proc-status">Processing…</div>
+            <div className="up-proc-status" role="status">{progress === null ? 'Loading dataset…' : progress < 100 ? `Uploading… ${progress}%` : 'Upload sent — profiling and saving dataset…'}</div>
           </div>
           <div className="up-spinner" />
         </div>
 
         <div className="up-steps">
-          {STEPS.map((step, i) => {
-            const done   = i < stepIndex
-            const active = i === stepIndex
-            return (
-              <div key={step} className={`up-step ${done ? 'done' : active ? 'active' : ''}`}>
-                <span className="up-step-dot">
-                  {done   ? <CheckIcon /> :
-                   active ? <span className="up-step-spin" /> :
-                            <span className="up-step-circle" />}
-                </span>
-                <span className="up-step-text">{step}…</span>
-              </div>
-            )
-          })}
+          {progress !== null && <progress aria-label="File transfer" max="100" value={progress} style={{ width: '100%', accentColor: 'var(--accent)' }} />}
+          <p className="up-processing-note">{elapsed}s elapsed. {progress === null ? 'The server is preparing your dataset.' : progress < 100 ? 'Sending your file to the server.' : 'Transfer finished. Large datasets can take longer to profile; keep this page open.'}</p>
+          {elapsed >= 30 && <p className="up-processing-note">Still waiting for the server. It may need extra time to start up or process this file.</p>}
         </div>
       </div>
     )

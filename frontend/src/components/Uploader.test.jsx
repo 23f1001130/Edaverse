@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
@@ -67,5 +67,32 @@ describe('Uploader size limits', () => {
 
     await waitFor(() => expect(uploadFile).toHaveBeenCalled())
     expect(fireToast).not.toHaveBeenCalled()
+  })
+
+  it('shows actual transfer progress and waits for the server after 100%', async () => {
+    let notifyProgress
+    uploadFile.mockImplementation((file, onProgress) => {
+      notifyProgress = onProgress
+      return new Promise(() => {})
+    })
+    const props = { onResult: vi.fn(), onError: vi.fn(), loading: false, setLoading: vi.fn() }
+    const view = render(<Uploader {...props} />)
+    await userEvent.upload(document.querySelector('input[type="file"]'), makeFile(1))
+    await waitFor(() => expect(uploadFile).toHaveBeenCalled())
+    view.rerender(<Uploader {...props} loading />)
+    act(() => notifyProgress(45))
+    expect(screen.getByRole('status')).toHaveTextContent('Uploading… 45%')
+    act(() => notifyProgress(100))
+    expect(screen.getByRole('status')).toHaveTextContent('profiling and saving dataset')
+    expect(screen.queryByText('Generating profile…')).not.toBeInTheDocument()
+  })
+
+  it('explains interrupted uploads without automatically resending the file', async () => {
+    uploadFile.mockRejectedValue(new Error('Network Error'))
+    const onError = vi.fn()
+    render(<Uploader onResult={vi.fn()} onError={onError} loading={false} setLoading={vi.fn()} />)
+    await userEvent.upload(document.querySelector('input[type="file"]'), makeFile(1))
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.stringMatching(/Connection.*interrupted/)))
+    expect(uploadFile).toHaveBeenCalledTimes(1)
   })
 })

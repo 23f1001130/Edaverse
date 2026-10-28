@@ -171,6 +171,8 @@
   font-size: 12px;
 }
 
+.up-processing-note { color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin-top: 12px; }
+
 /* Step list */
 .up-steps {
   display: flex;

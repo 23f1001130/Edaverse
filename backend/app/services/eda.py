@@ -34,19 +34,40 @@ def _safe(v):
     return v
 
 
-def _load_df(dataset: dict) -> pd.DataFrame:
+def _load_df(dataset: dict, max_rows=None) -> pd.DataFrame:
     dataset_id = dataset["id"]
     raw_path = DATA_DIR / f"{dataset_id}.parquet"
-    if not raw_path.exists():
-        ensure_dataset_file(dataset_id, raw_path.name)
-    if raw_path.exists():
-        return pd.read_parquet(raw_path)
     csv_path = DATA_DIR / f"{dataset_id}.csv"
+    csv_active = dataset.get("storage", {}).get("active_format") == "csv"
+    if not raw_path.exists():
+        if csv_active and not csv_path.exists():
+            ensure_dataset_file(dataset_id, csv_path.name)
+        elif not csv_active:
+            ensure_dataset_file(dataset_id, raw_path.name)
+    if raw_path.exists():
+        if max_rows:
+            import pyarrow.parquet as pq
+            batch = next(pq.ParquetFile(raw_path).iter_batches(batch_size=max_rows), None)
+            return batch.to_pandas() if batch is not None else pd.DataFrame()
+        return pd.read_parquet(raw_path)
     if not csv_path.exists():
         ensure_dataset_file(dataset_id, csv_path.name)
     if csv_path.exists():
-        return pd.read_csv(csv_path)
+        return pd.read_csv(csv_path, nrows=max_rows)
     return None
+
+
+def prepare_eda_frame(dataset):
+    """Bound interactive chart work; leave full-data operations unchanged."""
+    from app.services.parser import build_column_schema
+    total = dataset.get("shape", {}).get("rows", 0)
+    limit = 10000 if total > 10000 else None
+    df = _load_df(dataset, max_rows=limit) if limit else _load_df(dataset)
+    if df is None:
+        df = pd.DataFrame(dataset.get("sample_rows", []))
+    sampled = total > len(df)
+    schema = build_column_schema(df) if sampled else dataset.get("schema", [])
+    return df, schema, {"sampled": sampled, "rows": len(df), "total_rows": total}
 
 
 def is_id_like(col_info: dict, df: pd.DataFrame) -> bool:
@@ -813,23 +834,18 @@ def compute_observations(df: pd.DataFrame, schema: list, correlation: dict, outl
     return obs
 
 
-def compute_nulls(df: pd.DataFrame, schema: list) -> list:
+def compute_nulls(df: pd.DataFrame, schema: list, total_rows=None) -> list:
     return [
         {"column": c["name"], "null_count": c["null_count"],
-         "null_pct": c["null_pct"], "total": len(df)}
+         "null_pct": c["null_pct"], "total": len(df) if total_rows is None else total_rows}
         for c in schema
     ]
 
 
 def compute_eda(dataset: dict) -> dict:
-    df = _load_df(dataset)
-    if df is None:
-        rows = dataset.get("sample_rows", [])
-        if not rows:
-            return {"error": "No data available for EDA"}
-        df = pd.DataFrame(rows)
-
-    schema = dataset.get("schema", [])
+    df, schema, analysis = prepare_eda_frame(dataset)
+    if df.empty:
+        return {"error": "No data available for EDA"}
     correlation = compute_correlation(df, schema, "pearson")
     spearman = compute_correlation(df, schema, "spearman")
     outliers = compute_outliers(df, schema)
@@ -837,13 +853,14 @@ def compute_eda(dataset: dict) -> dict:
     return {
         "dataset_id": dataset["id"],
         "filename": dataset.get("filename"),
+        "analysis": analysis,
         "observations": compute_observations(df, schema, correlation, outliers),
         "distributions": compute_distributions(df, schema),
         "correlation": correlation,
         "correlation_spearman": spearman,
         "scatter_pairs": compute_scatter_pairs(df, schema, correlation),
         "outliers": outliers,
-        "nulls": compute_nulls(df, schema),
+        "nulls": compute_nulls(df, dataset.get("schema", []), dataset.get("shape", {}).get("rows", len(df))),
         "missingness": compute_missingness_cooccurrence(df, schema),
         "missingness_matrix": compute_missingness_matrix(df, schema),
         "numeric_profile": compute_numeric_profile(df, schema, outliers),

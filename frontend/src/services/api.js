@@ -34,6 +34,7 @@ export async function uploadFile(file, onProgress, headerRow = null) {
 
   const res = await axios.post(`${BASE}/api/upload`, form, {
     headers,
+    timeout: 600000,
     onUploadProgress: (e) => {
       if (onProgress && e.total) {
         onProgress(Math.round((e.loaded * 100) / e.total))

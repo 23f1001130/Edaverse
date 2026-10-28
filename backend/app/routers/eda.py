@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response, StreamingResponse
 from app.services.eda import (
     compute_eda, compute_target_analysis, stream_target_analysis,
-    _load_df, compute_distributions, compute_correlation, compute_outliers,
+    _load_df, prepare_eda_frame, compute_distributions, compute_correlation, compute_outliers,
     compute_scatter_pairs, compute_missingness_cooccurrence, compute_missingness_matrix,
     compute_numeric_profile, compute_categorical_profile,
     compute_pca_projection, compute_pivot_heatmap, compute_observations, compute_nulls,
@@ -63,15 +63,10 @@ def stream_eda(request: Request, dataset_id: str):
         try:
             import pandas as pd
             yield sse("loading", 0.05)
-            df = _load_df(dataset)
-            if df is None:
-                rows = dataset.get("sample_rows", [])
-                if not rows:
-                    yield sse("error", 0.0, {"error": "No data available for EDA"})
-                    return
-                df = pd.DataFrame(rows)
-
-            schema = dataset.get("schema", [])
+            df, schema, analysis = prepare_eda_frame(dataset)
+            if df.empty:
+                yield sse("error", 0.0, {"error": "No data available for EDA"})
+                return
 
             check_deadline("distributions")
             yield sse("distributions", 0.20)
@@ -89,7 +84,7 @@ def stream_eda(request: Request, dataset_id: str):
 
             check_deadline("advanced")
             yield sse("advanced", 0.76)
-            nulls = compute_nulls(df, schema)
+            nulls = compute_nulls(df, dataset.get("schema", []), dataset.get("shape", {}).get("rows", len(df)))
             observations = compute_observations(df, schema, correlation, outliers)
             missingness = compute_missingness_cooccurrence(df, schema)
             missingness_matrix = compute_missingness_matrix(df, schema)
@@ -101,6 +96,7 @@ def stream_eda(request: Request, dataset_id: str):
             result = {
                 "dataset_id": dataset["id"],
                 "filename": dataset.get("filename"),
+                "analysis": analysis,
                 "observations": observations,
                 "distributions": distributions,
                 "correlation": correlation,

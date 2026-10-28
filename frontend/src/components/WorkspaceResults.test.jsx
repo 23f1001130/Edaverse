@@ -15,6 +15,15 @@ const data = { filename: 'sample.csv', schema: [
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
 describe('Analysis navigation', () => {
+  it('discloses when charts use a preview of the retained full dataset', async () => {
+    localStorage.setItem('edaverse_workspace_tour_seen', 'true')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body: { getReader: () => ({ read: vi.fn()
+      .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('data: {"progress":1,"data":{"analysis":{"sampled":true,"rows":10000,"total_rows":500000}}}\n\n') })
+      .mockResolvedValueOnce({ done: true }) }) } }))
+    render(<WorkspaceResults data={{ ...data, id: 'large-sample' }} />)
+    expect(await screen.findByRole('note')).toHaveTextContent('10,000 of 500,000 rows')
+    expect(screen.getByRole('note')).toHaveTextContent('All parsed rows are retained')
+  })
   it('lets the user retry failed analysis without another upload', async () => {
     localStorage.setItem('edaverse_workspace_tour_seen', 'true')
     const fetchAnalysis = vi.fn().mockRejectedValueOnce(new Error('Network unavailable')).mockResolvedValueOnce({
