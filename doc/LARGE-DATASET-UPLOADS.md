@@ -28,9 +28,9 @@ Render logs for the failed request to establish the exact cause.
 
 ## Verification
 
-- Backend: 68 tests, including CSV tail preservation, full-file missing counts,
+- Backend: 69 tests, including CSV tail preservation, full-file missing counts,
   Excel iteration, header reparsing, malformed-file cleanup, upload limit, and
-  responsive config requests during ingestion.
+  responsive config requests during ingestion, and restoration of promoted data.
 - Frontend: 37 tests; production build and all four prerendered SEO checks pass.
 - Local integration benchmark using UCI's public Online Retail II workbook:
   45,622,278 bytes (43.51 MiB), first worksheet 525,461 rows. Ingestion 26.57 s,

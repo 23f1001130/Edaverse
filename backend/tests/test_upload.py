@@ -112,3 +112,19 @@ def test_processing_keeps_config_responsive_and_rejects_overlapping_uploads(isol
         finally:
             release.set()
         assert pending.result().status_code == 200
+
+
+def test_promoted_parquet_is_restored_instead_of_original_csv(isolated_storage, monkeypatch):
+    from app.routers.cleaning import _refresh_schema_in_store
+    content = b"value\n1\n2\n"
+    saved = store.save_dataset(parser.parse_upload("data.csv", io.BytesIO(content), len(content)))
+    changed = pd.DataFrame({"value": [99, 100]})
+    updated = _refresh_schema_in_store(saved["id"], changed)
+    assert updated["storage"]["active_format"] == "parquet"
+
+    def restore(dataset_id, filename):
+        assert filename == f"{dataset_id}.parquet"
+        changed.to_parquet(isolated_storage / filename, index=False)
+
+    monkeypatch.setattr(eda, "ensure_dataset_file", restore)
+    assert eda._load_df(updated)["value"].tolist() == [99, 100]
