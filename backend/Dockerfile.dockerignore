@@ -1,0 +1,9 @@
+**
+!LICENSE
+!backend/
+!backend/requirements.txt
+!backend/app/
+!backend/app/**
+**/__pycache__/
+**/*.pyc
+**/.env*
