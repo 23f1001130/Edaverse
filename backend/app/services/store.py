@@ -142,6 +142,7 @@ def save_dataset(parse_result: dict, owner_id: str | None = None) -> dict:
     data_path = parse_result.pop("_data_path", None)
     storage = {"backend": "local", "artifacts": []}
     if data_path is not None:
+        storage["active_format"] = "csv"
         csv_path = DATASETS_DIR / f"{dataset_id}.csv"
         data_path.replace(csv_path)
         key = upload_dataset_artifact(dataset_id, csv_path)

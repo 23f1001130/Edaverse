@@ -73,6 +73,10 @@ def _clear_workflow_state(dataset_id: str) -> dict | None:
 def _refresh_schema_in_store(dataset_id: str, df):
     """Recompute schema/shape/sample from a dataframe and persist to the metadata json."""
     data = get_dataset(dataset_id)
+    if data:
+        # Promotion writes the active dataset as Parquet. Keep later cache
+        # restoration from selecting the original streamed CSV instead.
+        data.setdefault("storage", {})["active_format"] = "parquet"
     if not data:
         return None
 

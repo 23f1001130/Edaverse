@@ -24,7 +24,7 @@ def isolated_storage(tmp_path, monkeypatch):
     return tmp_path
 
 
-def test_streamed_csv_retains_tail_and_exact_missing_counts(isolated_storage):
+def test_streamed_csv_retains_tail_and_exact_missing_counts(isolated_storage, monkeypatch):
     # The tail differs from the initial 10,000-row profile; it must survive storage.
     content = b"id,value,label\n" + b"1,10,normal\n" * 10001 + b"2,,tail\n"
     result = parser.parse_upload("large.csv", io.BytesIO(content), len(content))
@@ -36,6 +36,9 @@ def test_streamed_csv_retains_tail_and_exact_missing_counts(isolated_storage):
     persisted = pd.read_csv(isolated_storage / f'{saved["id"]}.csv')
     assert len(persisted) == 10002
     assert persisted.iloc[-1]["label"] == "tail"
+    def unexpected_download(*args):
+        pytest.fail("An available local dataset must not trigger an R2 lookup")
+    monkeypatch.setattr(eda, "ensure_dataset_file", unexpected_download)
     frame, schema, scope = eda.prepare_eda_frame(saved)
     assert len(frame) == 10000
     assert scope == {"sampled": True, "rows": 10000, "total_rows": 10002}

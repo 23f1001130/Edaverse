@@ -37,15 +37,19 @@ def _safe(v):
 def _load_df(dataset: dict, max_rows=None) -> pd.DataFrame:
     dataset_id = dataset["id"]
     raw_path = DATA_DIR / f"{dataset_id}.parquet"
+    csv_path = DATA_DIR / f"{dataset_id}.csv"
+    csv_active = dataset.get("storage", {}).get("active_format") == "csv"
     if not raw_path.exists():
-        ensure_dataset_file(dataset_id, raw_path.name)
+        if csv_active and not csv_path.exists():
+            ensure_dataset_file(dataset_id, csv_path.name)
+        elif not csv_active:
+            ensure_dataset_file(dataset_id, raw_path.name)
     if raw_path.exists():
         if max_rows:
             import pyarrow.parquet as pq
             batch = next(pq.ParquetFile(raw_path).iter_batches(batch_size=max_rows), None)
             return batch.to_pandas() if batch is not None else pd.DataFrame()
         return pd.read_parquet(raw_path)
-    csv_path = DATA_DIR / f"{dataset_id}.csv"
     if not csv_path.exists():
         ensure_dataset_file(dataset_id, csv_path.name)
     if csv_path.exists():
