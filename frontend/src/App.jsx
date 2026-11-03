@@ -68,7 +68,8 @@ function SSOCallback() {
 function AppContent() {
   const { isSignedIn, isLoaded } = useAuth()
   const params = new URLSearchParams(window.location.search)
-  const [view, setView] = useState(() => params.has('demo') ? 'workspace' : params.has('start') ? 'auth' : 'landing')
+  const pathNow = window.location.pathname.replace(/\/+$/, '') || '/'
+  const [view, setView] = useState(() => params.has('demo') ? 'workspace' : (params.has('start') || pathNow === '/auth') ? 'auth' : 'landing')
   const [startDemo, setStartDemo] = useState(() => params.has('demo'))
 
   useEffect(() => {
@@ -86,9 +87,7 @@ function AppContent() {
     }
   }, [isLoaded, isSignedIn])
 
-  // Handle SSO callback URL — match on pathname only to avoid false positives.
-  const _path = window.location.pathname.replace(/\/+$/, '') || '/'
-  if (_path === '/sso-callback' || _path.endsWith('/sso-callback')) {
+  if (pathNow === '/sso-callback' || pathNow.endsWith('/sso-callback')) {
     return <SSOCallback />
   }
 
