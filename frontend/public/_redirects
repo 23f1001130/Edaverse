@@ -2,3 +2,7 @@
 /sso-callback /auth-callback.html 200
 /sso-callback/ /auth-callback.html 200
 /sso-callback/* /auth-callback.html 200
+
+# SPA fallback — static files are served first by Cloudflare Pages,
+# so pre-rendered SEO pages and assets are unaffected.
+/* /index.html 200

@@ -376,14 +376,10 @@ dataflow/
 │       │       ├── TargetTab.jsx
 │       │       └── StepsTab.jsx
 │       └── services/
-│           ├── api.js               # Axios client — retry, request IDs, auth headers
+│           ├── api.js               # Fetch client — retry, auth headers
 │           └── toast.js             # Toast events + localStorage settings
 │
-└── deploy/
-    ├── setup.sh                     # One-command server provisioning
-    ├── deploy.sh                    # Redeploy (git pull → build → restart)
-    ├── nginx.conf                   # Reverse proxy configuration
-    └── dataflow.service             # Systemd unit for auto-restart
+└── render.yaml                      # Render deployment configuration
 ```
 
 ---
@@ -473,8 +469,6 @@ Browser
                                          │
                                     MongoDB Atlas (metadata) + Cloudflare R2 (dataset files)
 ```
-
-A legacy single-VM deployment path (Nginx + Systemd on a Ubuntu droplet) is still available under [`deploy/`](deploy/) for anyone who'd rather self-host on their own server.
 
 ---
 
