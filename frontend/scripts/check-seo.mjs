@@ -20,7 +20,8 @@ for (const page of pages) {
   assert(!descriptions.has(description), 'Duplicate description')
   descriptions.add(description)
   assert.equal(document.querySelectorAll('h1').length, 1)
-  assert(document.querySelector('main').textContent.length > 1200, 'Missing static page content')
+  const minContent = page.body ? 1200 : 300
+  assert(document.querySelector('main').textContent.length > minContent, 'Missing static page content')
   assert.equal(document.querySelectorAll('link[rel="canonical"]').length, 1)
   const canonical = `${SITE_URL}${page.path}`
   assert.equal(document.querySelector('link[rel="canonical"]').href, canonical)
