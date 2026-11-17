@@ -11,7 +11,7 @@ Upload a CSV or Excel file and get a complete analysis, cleaning report,<br/>and
 
 <br/>
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.141-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18-61dafb?style=flat-square&logo=react&logoColor=black)](https://react.dev)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776ab?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Vite](https://img.shields.io/badge/Vite-latest-646cff?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
@@ -26,7 +26,7 @@ Upload a CSV or Excel file and get a complete analysis, cleaning report,<br/>and
 
 <br/>
 
-![edaverse Dashboard](doc/landing%20page.png)
+![edaverse Dashboard](doc/landing-page.png)
 
 <br/>
 
@@ -147,7 +147,7 @@ Suggestions are grouped by category and can be applied selectively:
 <summary><b>🎯 UX & Onboarding</b></summary>
 <br/>
 
-- **Spotlight tour** — 7-step guided tour that points to each workspace area, just like production SaaS onboarding
+- **Spotlight tour** — 7-step guided tour that walks through each workspace area
 - **Toast notifications** — configurable alerts for EDA complete, cleaning applied, and features engineered
 - **Settings panel** — toggle notifications, set default correlation method, configure heatmap column limit, replay the tour
 - **History panel** — browse and restore any previous dataset upload
@@ -177,11 +177,11 @@ Suggestions are grouped by category and can be applied selectively:
 | **Frontend** | React 18, Vite, Recharts, Axios, React Dropzone |
 | **Auth** | Clerk (JWT + JWKS) |
 | **Backend** | Python 3.11, FastAPI, Uvicorn |
-| **Data processing** | Pandas 2.2, PyArrow 16, SciPy, OpenPyXL |
+| **Data processing** | Pandas, PyArrow, SciPy, OpenPyXL |
 | **Storage** | MongoDB (primary) + local Parquet / JSON (fallback) |
 | **Object storage** | S3-compatible (Cloudflare R2 / AWS S3 via Boto3) |
 | **Monitoring** | Sentry SDK, SlowAPI rate limiting |
-| **Deployment** | Render (API) + Cloudflare Pages (frontend) |
+| **Deployment** | Docker (self-hostable) |
 
 ---
 
@@ -189,19 +189,19 @@ Suggestions are grouped by category and can be applied selectively:
 
 | Upload | EDA Stats |
 |---|---|
-| ![Drag & Drop Upload](doc/drag%20%26%20drop.png) | ![EDA Stats](doc/Eda%20Stats.png) |
+| ![Drag & Drop Upload](doc/drag-and-drop.png) | ![EDA Stats](doc/eda-stats.png) |
 
 | Correlations Graphs | Correlation Heatmap |
 |---|---|
-| ![Graphs](doc/graphs.png) | ![Heatmap](doc/HeatMap.png) |
+| ![Graphs](doc/graphs.png) | ![Heatmap](doc/heatmap.png) |
 
 | Cleaning Issues | Cleaning Report |
 |---|---|
-| ![Cleaning Section](doc/cleaning%20section.png) | ![Cleaning Report](doc/Cleaning%20Report.png) |
+| ![Cleaning Section](doc/cleaning-section.png) | ![Cleaning Report](doc/cleaning-report.png) |
 
 | Feature Engineering |
 |---|
-| ![Feature Engineering](doc/feature%20Engineering.png) |
+| ![Feature Engineering](doc/feature-engineering.png) |
 
 ---
 
@@ -272,13 +272,11 @@ The app will be available at `http://localhost:5173`.
 APP_ENV=development
 
 # Auth
-# In development, trust unverified JWTs (no Clerk signature check)
-AUTH_TRUST_UNVERIFIED_JWT=true
+AUTH_TRUST_UNVERIFIED_JWT=false
 TRUST_PROXY_AUTH_HEADERS=false
-
-# In production, set these and set AUTH_TRUST_UNVERIFIED_JWT=false
 # CLERK_ISSUER_URL=https://your-clerk-issuer.clerk.accounts.dev
 # CLERK_JWKS_URL=https://your-clerk-issuer.clerk.accounts.dev/.well-known/jwks.json
+# For local dev without Clerk, set AUTH_TRUST_UNVERIFIED_JWT=true
 
 # CORS
 CORS_ALLOWED_ORIGINS=http://localhost:5173
@@ -379,7 +377,7 @@ dataflow/
 │           ├── api.js               # Fetch client — retry, auth headers
 │           └── toast.js             # Toast events + localStorage settings
 │
-└── render.yaml                      # Render deployment configuration
+└── render.yaml                      # Deployment configuration
 ```
 
 ---
@@ -439,36 +437,22 @@ Stages in order: `overview` → `distributions` → `correlation` → `target` �
 
 ## Deployment
 
-edaverse runs on two free managed platforms instead of a self-managed server:
+edaverse is self-hostable via Docker or any platform that runs Python and Node.
 
-- **Backend** — [Render](https://render.com) web service, deployed from [`render.yaml`](render.yaml) (Python 3.11, `backend/` as root directory, free instance type).
-- **Frontend** — [Cloudflare Pages](https://pages.cloudflare.com), building `frontend/` with Vite and serving the static output from Cloudflare's edge.
-- **Database** — [MongoDB Atlas](https://www.mongodb.com/atlas) (free M0 cluster).
-- **Object storage** — [Cloudflare R2](https://developers.cloudflare.com/r2/) for dataset artifacts, S3-compatible via Boto3.
-
-The frontend talks to the backend cross-origin (`VITE_API_URL` pointing at the Render service's own domain) rather than through a same-origin reverse proxy, since routing the SSE-based EDA stream through an edge proxy risks it being buffered.
+- **Backend** — FastAPI + Uvicorn (Python 3.11), containerized via the included Dockerfile.
+- **Frontend** — React 18 + Vite, built to static files and served from any CDN or static host.
+- **Database** — [MongoDB Atlas](https://www.mongodb.com/atlas) or any MongoDB instance.
+- **Object storage** — S3-compatible (Cloudflare R2, AWS S3, MinIO) via Boto3, or local filesystem.
 
 ### Production checklist
 
 - [ ] Set `AUTH_TRUST_UNVERIFIED_JWT=false`
-- [ ] Set `CLERK_ISSUER_URL` (Clerk **production** instance's Frontend API URL, not the dev instance)
+- [ ] Set `CLERK_ISSUER_URL` (Clerk **production** instance's Frontend API URL)
 - [ ] Set `APP_ENV=production`
-- [ ] Set `CORS_ALLOWED_ORIGINS` on Render to the frontend's exact origin
-- [ ] Set `VITE_API_URL` on Cloudflare Pages to the Render service's URL, and `VITE_APP_URL` to the frontend's own URL
-- [ ] Add the production domain to Clerk's allowed origins/redirect URLs and to any social connection's (e.g. Google) authorized redirect URIs
+- [ ] Set `CORS_ALLOWED_ORIGINS` to the frontend's exact origin
+- [ ] Set `VITE_API_URL` to the backend's URL, and `VITE_APP_URL` to the frontend's URL
+- [ ] Add the production domain to Clerk's allowed origins/redirect URLs
 - [ ] Set `MONGODB_URI`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`
-
-### Architecture
-
-```
-Browser
-  │
-  ├── https://edaverse.app          → Cloudflare Pages (static React build)
-  │
-  └── https://api.edaverse.app/*    → Render (FastAPI via Uvicorn)
-                                         │
-                                    MongoDB Atlas (metadata) + Cloudflare R2 (dataset files)
-```
 
 ---
 
