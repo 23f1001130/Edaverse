@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { JSDOM } from 'jsdom'
-import { home, featurePages, SITE_URL } from '../src/seo/pages.js'
+import { home, featurePages, blogPosts, blogIndex, SITE_URL } from '../src/seo/pages.js'
 
-const pages = [home, ...featurePages]
+const pages = [home, ...featurePages, blogIndex, ...blogPosts]
 const titles = new Set()
 const descriptions = new Set()
 const sitemap = await readFile(new URL('../dist/sitemap.xml', import.meta.url), 'utf8')
