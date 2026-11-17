@@ -19,6 +19,8 @@ Upload a CSV or Excel file and get a complete analysis, cleaning report,<br/>and
 [![Clerk](https://img.shields.io/badge/Auth-Clerk-6c47ff?style=flat-square&logo=clerk&logoColor=white)](https://clerk.com)
 [![MongoDB](https://img.shields.io/badge/MongoDB-primary-47a248?style=flat-square&logo=mongodb&logoColor=white)](https://mongodb.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-14b8a6?style=flat-square)](LICENSE)
+[![Frontend](https://img.shields.io/github/actions/workflow/status/23f1001130/Edaverse/frontend-tests.yml?label=frontend&style=flat-square)](https://github.com/23f1001130/Edaverse/actions/workflows/frontend-tests.yml)
+[![Backend](https://img.shields.io/github/actions/workflow/status/23f1001130/Edaverse/backend-tests.yml?label=backend&style=flat-square)](https://github.com/23f1001130/Edaverse/actions/workflows/backend-tests.yml)
 
 <br/>
 
