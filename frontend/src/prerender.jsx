@@ -2,12 +2,16 @@ import React from 'react'
 import { renderToString } from 'react-dom/server'
 import Landing from './pages/Landing.jsx'
 import FeaturePage from './pages/FeaturePage.jsx'
-import { home, featurePages, SITE_URL } from './seo/pages.js'
+import BlogPost, { BlogIndex } from './pages/BlogPost.jsx'
+import { home, featurePages, blogPosts, blogIndex, SITE_URL } from './seo/pages.js'
 
-export const pages = [home, ...featurePages]
+export const pages = [home, ...featurePages, blogIndex, ...blogPosts]
 
 export function renderPage(page) {
-  return renderToString(page.path === '/' ? <React.Suspense fallback={null}><Landing /></React.Suspense> : <FeaturePage page={page} />)
+  if (page.path === '/') return renderToString(<React.Suspense fallback={null}><Landing /></React.Suspense>)
+  if (page.path === '/blog/') return renderToString(<BlogIndex />)
+  if (page.body) return renderToString(<BlogPost page={page} />)
+  return renderToString(<FeaturePage page={page} />)
 }
 
 export function structuredData(page) {

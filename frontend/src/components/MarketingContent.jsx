@@ -21,6 +21,7 @@ export function MarketingFooter() {
   return <footer className="marketing-footer">
     <a href="/">edaverse</a>
     <nav aria-label="Explore edaverse">{featurePages.map(page => <a href={page.path} key={page.path}>{page.label}</a>)}
+      <a href="/blog/">Blog</a>
       <a href="https://github.com/23f1001130/Edaverse">Source code &amp; self-hosting</a>
     </nav>
   </footer>

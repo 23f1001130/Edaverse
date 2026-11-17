@@ -478,8 +478,8 @@ Contributions are welcome. To get started:
 
 ```bash
 # 1. Fork the repo on GitHub, then clone your fork
-git clone https://github.com/your-username/dataflow.git
-cd dataflow
+git clone https://github.com/your-username/Edaverse.git
+cd Edaverse
 
 # 2. Create a feature branch
 git checkout -b feat/your-feature-name

@@ -62,6 +62,57 @@ export const featurePages = [
   },
 ]
 
+export const blogPosts = [
+  {
+    path: '/blog/analyze-csv-without-code/', label: 'Analyze CSV without code',
+    title: 'How to Analyze a CSV File Without Writing Code | edaverse',
+    description: 'Learn how to explore, profile, and clean CSV data without Python or SQL. A step-by-step guide using edaverse for no-code exploratory data analysis.',
+    heading: 'How to analyze a CSV file without writing code',
+    published: '2026-11-17',
+    body: [
+      ['The problem with raw CSV files', 'You exported a CSV from your CRM, survey tool, or database. Now what? Opening it in a spreadsheet shows rows and columns, but not the story: which columns have missing data, whether numeric fields contain outliers, or how variables relate to each other. Writing Python or R to answer these questions takes time — and assumes you know them.'],
+      ['What exploratory data analysis actually means', 'Exploratory data analysis (EDA) is the first pass over a dataset. You check its shape, look at distributions, find missing values, spot outliers, and examine correlations. The goal is not to build a model — it is to understand what you have before deciding what to do with it.'],
+      ['A no-code approach', 'Tools like edaverse let you do this visually. Upload a CSV file and get a column-by-column profile: data types, null counts, unique values, and summary statistics. Then look at distribution charts and a correlation heatmap without writing a line of code.'],
+      ['Step 1: Upload and check the parse', 'Drag your file into edaverse or use the upload button. The parser detects delimiters, encodings, and data types automatically. Review the preview and any warnings — a date column interpreted as text, or a numeric column with commas, is worth catching early.'],
+      ['Step 2: Profile and explore', 'The overview tab shows row count, column count, missing values, and duplicates. The distributions tab visualizes each numeric column. The correlations tab shows a heatmap of relationships. These three views answer most first-pass questions without any code.'],
+      ['Step 3: Clean and export', 'If you find issues — missing values, inconsistent categories, outliers — the cleaning tab suggests fixes. Review each suggestion, apply the ones that fit, and export a cleaned CSV, an Excel file, or a Jupyter notebook for further work.'],
+      ['When you do need code', 'No-code EDA covers the first 80% of data exploration. For custom statistical tests, domain-specific transformations, or machine learning pipelines, export a notebook and continue in Python. The point is not to avoid code forever — it is to skip the boilerplate.'],
+    ],
+  },
+  {
+    path: '/blog/data-cleaning-steps/', label: 'Data cleaning steps',
+    title: '5 Data Cleaning Steps Every Dataset Needs | edaverse',
+    description: 'A practical guide to the five data cleaning steps that catch the most common quality issues in CSV and Excel datasets.',
+    heading: '5 data cleaning steps every dataset needs',
+    published: '2026-11-17',
+    body: [
+      ['Why cleaning comes before analysis', 'A model trained on dirty data produces dirty predictions. A report built on inconsistent categories tells a misleading story. Data cleaning is not glamorous, but skipping it is the most common source of wrong conclusions in data work.'],
+      ['Step 1: Check data types', 'A zip code stored as a number loses leading zeros. A date stored as text cannot be sorted chronologically. The first cleaning step is confirming that every column has the right type — and fixing the ones that do not.'],
+      ['Step 2: Handle missing values', 'Not all missing values are the same. A blank cell might mean "unknown", "not applicable", or "data entry error". Decide the meaning before choosing a treatment: drop the row, fill with a default, or flag it for review.'],
+      ['Step 3: Standardize categories', 'If your dataset has "USA", "US", "United States", and "united states" in the same column, any grouping or filtering will give wrong results. Standardize categorical values to a single canonical form.'],
+      ['Step 4: Detect and handle outliers', 'An age of 999 or a transaction amount of -$50,000 is probably an error. But a genuinely large purchase is not. Look at outliers in context: compare them against the source data before removing them.'],
+      ['Step 5: Remove duplicates', 'Duplicate rows inflate counts and skew averages. But not every duplicate is accidental — a customer who placed two identical orders on the same day might be real. Check whether the duplication is in the data or in the collection process.'],
+      ['Automate what you can', 'Manual cleaning does not scale. Tools like edaverse automate the detection side — flagging missing values, type mismatches, and duplicates — while keeping you in the loop for decisions. Review suggestions, apply the ones that fit, and export.'],
+    ],
+  },
+  {
+    path: '/blog/what-is-eda/', label: 'What is EDA',
+    title: 'What is Exploratory Data Analysis (EDA)? A Beginner\'s Guide | edaverse',
+    description: 'Exploratory data analysis explained for beginners. Learn what EDA is, why it matters, and how to do it without writing code.',
+    heading: 'What is exploratory data analysis?',
+    published: '2026-11-17',
+    body: [
+      ['EDA in one sentence', 'Exploratory data analysis is the process of examining a dataset to understand its structure, quality, and patterns before doing anything else with it.'],
+      ['Why EDA matters', 'Jumping straight to modeling or reporting without understanding your data is like navigating without a map. EDA reveals missing values that would break a model, skewed distributions that would bias an average, and correlations that suggest which variables matter.'],
+      ['The four things EDA answers', 'Every EDA answers four questions: (1) What shape is the data — how many rows, columns, and what types? (2) What is missing or broken — nulls, duplicates, type errors? (3) What does each variable look like — distributions, outliers, common values? (4) How do variables relate — correlations, group differences, trends?'],
+      ['EDA with code vs. without code', 'The traditional approach uses Python (pandas, matplotlib, seaborn) or R. This works well but requires programming knowledge and repetitive boilerplate. No-code tools like edaverse automate the common steps: upload a file, get a profile, explore distributions, and review correlations — all in a visual interface.'],
+      ['When to use EDA', 'Before building a machine learning model. Before writing a report. Before making a business decision based on data. Before cleaning a dataset. Any time you receive data you have not seen before.'],
+      ['A practical example', 'You receive a CSV of customer transactions. EDA tells you: 2% of rows have no transaction amount (needs investigation), the amount distribution is right-skewed (median is better than mean), and transaction count correlates with customer tenure (expected but worth confirming). Ten minutes of EDA saves hours of debugging later.'],
+      ['Getting started', 'Try edaverse with the built-in demo dataset, or upload your own CSV or Excel file. The workspace walks you through profiling, distributions, correlations, and cleaning without requiring any code.'],
+    ],
+  },
+]
+
 export const homeFaqs = [
   ['What is exploratory data analysis (EDA)?', 'EDA is the first investigation of a dataset: checking its structure, missing values, distributions, and relationships. It helps you decide which questions to ask and which preparation steps to take before deeper analysis.'],
   ['What can I do with edaverse?', 'Upload CSV or Excel data, inspect column profiles and visualizations, review cleaning suggestions, engineer features, and export a cleaned file, notebook, or report.'],
@@ -73,7 +124,14 @@ export function normalizePath(path) {
   return path === '/' ? '/' : `${path.replace(/\/+$/, '')}/`
 }
 
+export const blogIndex = {
+  path: '/blog/', title: 'Blog — Data Analysis Guides | edaverse',
+  description: 'Guides on exploratory data analysis, data cleaning, and working with CSV and Excel data without code.',
+}
+
 export function findPage(path) {
   const normalized = normalizePath(path)
-  return normalized === '/' ? home : featurePages.find(page => page.path === normalized)
+  if (normalized === '/') return home
+  if (normalized === '/blog/') return blogIndex
+  return featurePages.find(page => page.path === normalized) || blogPosts.find(page => page.path === normalized)
 }

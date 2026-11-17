@@ -40,6 +40,7 @@
 .feature-article { max-width: 940px; }
 .feature-article section + section { margin-top: 48px; }
 .feature-article ol { padding-left: 24px; margin-top: 24px; color: var(--text-secondary); line-height: 1.9; }
+.blog-date { display: block; margin-top: 14px; color: var(--text-tertiary); font-size: 14px; }
 .app-loading { min-height: 100vh; display: grid; place-items: center; color: var(--text-secondary); }
 @media (max-width: 700px) {
   .seo-section { padding: 36px 18px; }
@@ -256,6 +257,26 @@
   background: var(--surface-tint);
   font-size: 12px;
   font-weight: 700;
+}
+
+.github-star {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 10px 18px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 700;
+  transition: border-color .16s ease, color .16s ease, background .16s ease;
+}
+.github-star:hover {
+  border-color: rgba(59,130,246,0.35);
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
 }
 
 .hero-product {

@@ -4,6 +4,7 @@ import { ClerkProvider } from '@clerk/clerk-react'
 import * as Sentry from '@sentry/react'
 import App from './App.jsx'
 import FeaturePage from './pages/FeaturePage.jsx'
+import BlogPost, { BlogIndex } from './pages/BlogPost.jsx'
 import { findPage } from './seo/pages.js'
 import './index.css'
 
@@ -29,7 +30,8 @@ const interactiveEntry = query.has('start') || query.has('demo')
 // Public guides are independent of authentication. Without a configured auth key,
 // retain the generated HTML so marketing content remains available.
 if (isFeaturePage) {
-  const content = <React.StrictMode><FeaturePage page={page} /></React.StrictMode>
+  const PageComponent = page.path === '/blog/' ? BlogIndex : page.body ? BlogPost : FeaturePage
+  const content = <React.StrictMode><PageComponent page={page} /></React.StrictMode>
   if (root.dataset.prerendered) ReactDOM.hydrateRoot(root, content)
   else ReactDOM.createRoot(root).render(content)
 } else if (PUBLISHABLE_KEY) {
